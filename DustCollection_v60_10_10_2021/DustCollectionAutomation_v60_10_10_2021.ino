@@ -58,7 +58,8 @@
                                                     That file will read the gate configuration, load the encrypted WIFI, and set all the congiruation to EEPROM
 
                                                     Alternatively, you can load the reserve file, DustCollectorEEPROM.cfg while will load a binary copy of the EEPROM image
-
+                                                     To inactivate a gate or outlet - set set the tool Switch ID to -1 and the outlet will be ignored in the loop
+                                                    There needs to be a switch ID configuration screen added to the Blynk app
 ****************************************************************************************************************************************/
 #define BLYNK_PRINT Serial
 #include <Adafruit_PWMServoDriver.h>
