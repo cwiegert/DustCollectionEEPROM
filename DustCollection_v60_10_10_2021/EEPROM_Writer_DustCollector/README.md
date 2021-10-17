@@ -9,7 +9,7 @@ This version will decrypt the [Config File](https://github.com/cwiegert/DustColl
 
 Alternatively, open the .ino file, search for startWifiFromConfig() select whether you are running local or to the blynk server, and redefine the commented line 639.   The line is currently commented and used for the reference on how to hard code parameters for initilization.   Documentation can be found [here](http://docs.blynk.cc/#getting-started-getting-started-with-the-blynk-app) and can be a bit tricky to figure out.   first and formost, connect the blynk app to "A" blynk server - whether local or the blynk.com server - and connect the blynk app to the server - then generate a key.   That key, will be the auth key in the parameters setting.
 
-[Blynk Application QR Code](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/BlynkApplication.jpeg)
+[Blynk Application QR Code](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/BlynkApplication.jpeg) is the baseline code for the app created specifically for this system.   If you use the app, it should conenct directly to the Virtual Pin configration defined in the event handlers of the main line code
 
 
 
