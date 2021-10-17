@@ -1,5 +1,5 @@
 # DustCollectionEEPROM
-**v. 6.0 --** moved all configuration from SD Files to EEPROM, and set Blynk app to be able to configure a new gate from the app. 
+**v. 6.0 --** moved all configuration from SD Files to EEPROM, and set Blynk app to be able to configure a new gate from the app.  Also reset the setup to have simple functions to read the sections from EEPROM.    Wrote the EEPROM initilization application which uses the old config file to populate EEPROM.
 
 ## Background ##
 Having completed the [Router Lift Automation](https://github.com/cwiegert/RouterLift-v5.6-EEPROM), it was time to move on to another project.   I was tired of running back and forth to the dust collector, and opening/closing all the gates to a machine.   I found Bob's automation on his youtube channel [I like to Make stuff](https://www.youtube.com/watch?v=D1JWH425o7c) took his code, started the concept and modified it to make the shop as configurable as possible.
@@ -7,6 +7,28 @@ Having completed the [Router Lift Automation](https://github.com/cwiegert/Router
 ## The Code ##
 Starting with the model similar to Bob's I just wanted to get the servo's, outlets and blast gates working.    Instead of hardcoding all the gate configurations, I decided to build on the configuration model used in the router lift project.   With 4 different configuration concepts, there are 4 different sections to the DustGatesConfiguration 53.cfg file.   
 
+Even though there are a number of things going on on the code, it's really very simple.    The loop function will check to see if the system is in automated or manual mode.   If automated, a for/Next loop will cycle through the # of outlets and assess for a -1. (if outlet # is -1, the tool has been taken off line).  If the outlet is active, check for a voltage change.   If the tool is on, turn it off, if off - turn the tool on.   Voltage change is defined by baseline, or running voltage.  In the check for voltage, millis () is used to sample the voltage for a number of milliseconds to account for debouncing.   If there was sensed current, check to see if the dust collector is on.   If so - run the gate map, open and close the gates to the gate associated with the outlet.  That's it... 
+
+on setup- the configuration is read from EEPROM, 
+```        readConfigEEPROM();     
+        readGatesEEPROM ();     
+        readOutletsEEPROM();    
+        readWIFIConfig();     
+```        
+
+the PWM is intialized
+```
+        pwm.begin();
+        pwm.setPWMFreq(60);  // Default is 1000mS
+        pinMode ( dust.dustCollectionRelayPin, OUTPUT);
+```
+wifi is started, the outlets are 0'd for baseline voltage, the Blynk app is intialized to ensure the names and values of the gates are loaded, the dust collector is turned off, and all the gates in the system are closed
+```     startWifiFromConfig ('^^', '^', 1);
+        resetVoltageSwitches();
+        setBlynkControls();
+        turnOffDustCollection();
+        closeAllGates (true);
+```
 Also, to really take advantage of this system, There is a Blynk app I have created wich you can import and get your auth code from the system.   The [Blynk QR Code](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/BlynkApplication.jpeg) is available for your use.   Simply follow the [Blynk Sharing instructions](http://docs.blynk.cc/#sharing) and all the controls will link up with the event handlers defined in the main .ino file.
 
 ### System Config ###
@@ -55,7 +77,7 @@ This section will set the real workhorse section of the code.   Once a voltage c
 
 **gate Switch map** --> Used to define the state of every gate in the system.   if '1', the gate will be opened, if '0' the gate will be closed.   This array defines the path to the tool gate, and is the configuration for the runGateMap(int) function.   
 
-the baseline configuration below is for Gate 0, plugged into PWM slot 0, and is the gate on the Left Y of the collector, wiht a gate open value of 480, close value of 375, is the 1st gate in the system and will be the only gate opened all other gates should be closed.
+the baseline configuration below is for Gate 0, plugged into PWM slot 0, and is the gate on the Left Y of the collector, with a gate open value of 480, close value of 375, is the 1st gate in the system and will be the only gate opened all other gates should be closed.
 
 parsing token | gate # | pwmSlot | Name | open | close | gate switch map
 
@@ -97,4 +119,20 @@ The baseline configuration for the below outlet shows the Miter Saw is plugged i
 Because there was no serial monitoring and ability to configure the gates open/close parameter without re-uploading the app, I used the [Blynk](https://blynk.io) system to connect to the arduino through wifi solution.   With that, there was a need to set the connection parameters without having to recompile/upload a system.   This section was modified in this version to use WIFI and no longer read the encrypted wifi file.   Have a look in the [EEPROM](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/EEPROM_Writer_DustCollector/README.md) to get the config of the parameters for connecting to wifi and linking the Blynk app to the arduino.
 
 ## The Setup - system and hardware ##
+
+All created with an Arcuino Mega 2560 - I needed the memory for all the variables and runtime arrays.   Plugged to that is an SD Card shield and a EPS8266 WIFI shield.   Configuring each of those shield are well documented and I won't spend time here.    
+
+Similar to the setup in Bob's original design, using 1/2" baltic birch plywood, I creates a servo holder for for each of the aluminum blast gates, and cut/milled aluminum swing arm to mount to the servo horn.   The swing arm attaches to the blast gate flange with a simple #8 machine screw, and mounts to the horn with 3MM allen set screws.   It's important to have the gate installed correctly, to ensure they don't stick.  The tightening knob on the gate, should be on the flow side opposite the dust collection.   In ontherwors, the knob should tighten in the direction the air is flowing back to the dust collector.   The gates are designed to be installed that way, and you will have less trouble with the gate sticking - which in turn will burn up your servo's.
+
+Here is an example of the [prototyping](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/Gates%20prototype.MOV) work and a demonstration of the bracket, servo, arm and .... unfortulately,.... the gates sticking.   
+
+Each of the [servo's](https://www.amazon.com/gp/product/B07VJG5QTJ/ref=ppx_yo_dt_b_asin_title_o05_s00?ie=UTF8&psc=1) are mounted with the [hanger](https://www.amazon.com/gp/product/B07Q2VP8P4/ref=ppx_yo_dt_b_asin_title_o05_s00?ie=UTF8&psc=1) and  will connect to a pin set on the [PWM Contoller](https://www.amazon.com/gp/product/B01D1D0CX2/ref=ppx_yo_dt_b_asin_title_o02_s01?ie=UTF8&psc=1).   Obviously, wire is needed to be run from the contoller to the servers, and for that I used 4 wire thermostat wire with [3 pin connectors](https://www.amazon.com/gp/product/B07ZHB4BBY/ref=ppx_yo_dt_b_asin_title_o07_s00?ie=UTF8&psc=1) wrapped with shrink tubing.   Be sure to lable the voltage and ground side, as once the shrink tubing is on, you can't see the wire colors.
+
+Each of the [voltage sensors](https://www.amazon.com/gp/product/B07SPRL8DL/ref=ppx_yo_dt_b_asin_title_o08_s00?ie=UTF8&psc=1) are connected to the system with the same 3 pin connectors.   and, similar to Bob, I wired them in to an outlet connected to each machine.   That outlet has a male plug and cord attached that plugs into the wall, and the machine is plugged into the current sensing outlet.    I wanted to make sure I could move the sensor with the machine and not have to modify my in wall shop outlets.  Again, I used the 3 wire theromostat wire to connect the outlet to the analog pins and 5 volts power shource.
+
+Each of the [servo's](https://www.amazon.com/gp/product/B07VJG5QTJ/ref=ppx_yo_dt_b_asin_title_o05_s00?ie=UTF8&psc=1) are mounted with the [hanger](https://www.amazon.com/gp/product/B07Q2VP8P4/ref=ppx_yo_dt_b_asin_title_o05_s00?ie=UTF8&psc=1) and  will connect to a pin set on the [PWM Contoller](https://www.amazon.com/gp/product/B01D1D0CX2/ref=ppx_yo_dt_b_asin_title_o02_s01?ie=UTF8&psc=1).   Obviously, wire is needed to be run from the contoller to the servers, and for that I used 4 wire thermostat wire with [3 pin connectors](https://www.amazon.com/gp/product/B07ZHB4BBY/ref=ppx_yo_dt_b_asin_title_o07_s00?ie=UTF8&psc=1) wrapped with shrink tubing.   Be sure to lable the voltage and ground side, as once the shrink tubing is on, you can't see the wire colors.
+
+To control the dust collector, I used a heavy duty 30 amp, 110V [relay](https://www.amazon.com/gp/product/B01MCWO35P/ref=ppx_yo_dt_b_asin_title_o00_s00?ie=UTF8&psc=1) with the [thermo grease](https://www.amazon.com/gp/product/B07NV27PDX/ref=ppx_yo_dt_b_asin_title_o00_s01?ie=UTF8&psc=1) and heat sink to control the switch on the dust collector.   If you have a Jet Canister style like I did, the switch is wired as a 110v/240v switch.   That means, you have to wire the H switch relay to account for the 2 power "on" wires in teh dust collector.  For liability reasons, you will need to look that up yourself, as I am not a licensed electician and should not give you that advice.    However, the relay has a 12V switch side, that is connected to a 12V relay, which is powered through the dust collector PIN from the config file.   When the PIN is set to HIGH - 12v are sent through the relay, to the heavy duty relay, and the current flows to the dust collector and vice versa.   whan the PIN is LOW, the dust collector is off.
+
+For the mounting and distribution of power, see my [router](https://github.com/cwiegert/RouterLift-v5.6-EEPROM) write up, as I used the same boxes, power distribution and rail mounted power sources as there.   1x 5V, 1x 12V and the rails to mount them to the wall.
 
