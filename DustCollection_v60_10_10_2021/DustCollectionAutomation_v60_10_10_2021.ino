@@ -1,6 +1,6 @@
 
 /*
-   This code is for the project at
+   This code is from the project at
    http://www.iliketomakestuff.com/how-to-automate-a-dust-collection-system-arduino
    All of the components are list on the url above.
 
@@ -67,23 +67,23 @@
 #include <ESP8266_Lib.h>
 #include <EEPROM.h>
 #include <BlynkSimpleShieldEsp8266.h>
-#define EspSerial Serial1
 
+
+#define EspSerial Serial1   //  connecting the wifi shield to TX1/RX1 on the arduino board
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();                 // called this way, it uses the default address 0x40
 
 // you can also call it with a different address you want
 //Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x41);
 
-// Hardware Serial on Mega, Leonardo, Micro...
-ESP8266     wifi(&EspSerial);
-BlynkTimer  timer;
+
+ESP8266     wifi(&EspSerial);     //  constructure to create the handle to the wifi shield
+BlynkTimer  timer;                //  Blynk cocunter to monitor events coming in from the Blynk app
 WidgetTerminal terminal(V8);      //  terminal object in the Blynk app, main screen
 WidgetTerminal confTerm(V22);     //  terminal object in the Blynk app, configuration screen
 WidgetTerminal encryptTerm(V40);  //  terminal object in the Blynk app, encruption screen
 
-
-BLYNK_WRITE(V1)       // turn on and off dust collector button
+BLYNK_WRITE(V1)     //  turn on and off dust collector button
 {
   if (manualOveride == true)
     if (param.asInt() == 1)           // button is pressed to on
@@ -93,13 +93,13 @@ BLYNK_WRITE(V1)       // turn on and off dust collector button
         turnOffDustCollection();
 }
 
-BLYNK_WRITE(V2)     // Gate drop down, selecting which gate is opened or closed
+BLYNK_WRITE(V2)     //  Gate drop down, selecting which gate is opened or closed
 {
   blynkSelectedGate = param.asInt() - 1;
 
 }
 
-BLYNK_WRITE(V5)   // button for opening a gate.   Will set highlight back to middle button after processing click
+BLYNK_WRITE(V5)     //  button for opening a gate.   Will set highlight back to middle button after processing click
 {
   if (manualOveride == true)
     if (param.asInt() == 1)
@@ -124,7 +124,7 @@ BLYNK_WRITE(V5)   // button for opening a gate.   Will set highlight back to mid
     }
 }
 
-BLYNK_WRITE(V6)     // changes operation from automated monitoring | manual use of Blynk app
+BLYNK_WRITE(V6)     //  changes operation from automated monitoring | manual use of Blynk app
 {
   if (param.asInt() == 1)
     manualOveride = true;
@@ -132,7 +132,7 @@ BLYNK_WRITE(V6)     // changes operation from automated monitoring | manual use 
     manualOveride = false;
 }
 
-BLYNK_WRITE(V7)   //   text on screen to close all the gates in the system.   Similar to a reinitialization
+BLYNK_WRITE(V7)     //  text on screen to close all the gates in the system.   Similar to a reinitialization
 {
   if (manualOveride == true)
     if (param.asInt() == 1)
@@ -142,12 +142,12 @@ BLYNK_WRITE(V7)   //   text on screen to close all the gates in the system.   Si
     }
 }
 
-BLYNK_WRITE (V9)      // text button on screen to clear the terminal widget
+BLYNK_WRITE (V9)    //  text button on screen to clear the terminal widget
 {
   terminal.clear();
 }
 
-BLYNK_WRITE(V12)    // button that reads the voltage sensors of selected outlet
+BLYNK_WRITE(V12)    //  button that reads the voltage sensors of selected outlet
 {
   terminal.println(param.asInt());
   if (param.asInt() == 2)
@@ -168,11 +168,12 @@ BLYNK_WRITE(V11)    //  menu drop down to choose which outlet to monitor
   inspectionPin = toolSwitch[param.asInt() - 1].voltSensor;
 }
 
-BLYNK_WRITE (V15)   //  text button to reset the SD card.   Useful if making changes to the config file, doesn't require a restart of the Arduino script
+BLYNK_WRITE (V15)   //  v.6.0 -- no longer active
+                    //text button to reset the SD card.   Useful if making changes to the config file, doesn't require a restart of the Arduino script
 {
 }
 
-BLYNK_WRITE(V16)    // menu text, turns on the debug tracing.    Don't need to set the config file, can turn off debugging by clicking button again
+BLYNK_WRITE(V16)    //  menu text, turns on the debug tracing.    Don't need to set the config file, can turn off debugging by clicking button again
 {
   if (param.asInt() == 1)
   {
@@ -326,7 +327,7 @@ BLYNK_WRITE(V31)    //  toggle control on the encrypt screen used to tell whethe
   Blynk.virtualWrite(V31, 2);*/
 }
 
-BLYNK_WRITE (V32)   // populate the blynkWIFIConnect structure with the values from the screen
+BLYNK_WRITE (V32)   //  populate the blynkWIFIConnect structure with the values from the screen
 {                   //  modified v6.0
   if (param.asInt() == 1)   
   {                     
@@ -397,7 +398,7 @@ BLYNK_WRITE (V41)   //  button to open, decrypt and read file named in V30
       } // end of If Param == 1
 }
 
-BLYNK_WRITE (V42)   // Create memory space for new gate to be added to the system.   Must save to EEPROM for gate to be active
+BLYNK_WRITE (V42)   //  Create memory space for new gate to be added to the system.   Must save to EEPROM for gate to be active
 {                   //  modified v6.0
   if (param.asInt() == 1)
     {
@@ -411,7 +412,7 @@ BLYNK_WRITE (V42)   // Create memory space for new gate to be added to the syste
     }
 }
 
-BLYNK_WRITE (V24)   // Added in v6.0  It's the button to write the new gate to EEPROM
+BLYNK_WRITE (V24)   //  Added in v6.0  It's the button to write the new gate to EEPROM
 {                   //  modified v6.0
   if (gateAdded)
     {
