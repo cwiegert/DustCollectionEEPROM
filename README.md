@@ -7,6 +7,8 @@ Having completed the [Router Lift Automation](https://github.com/cwiegert/Router
 ## The Code ##
 Starting with the model similar to Bob's I just wanted to get the servo's, outlets and blast gates working.    Instead of hardcoding all the gate configurations, I decided to build on the configuration model used in the router lift project.   With 4 different configuration concepts, there are 4 different sections to the DustGatesConfiguration 53.cfg file.   
 
+Also, to really take advantage of this system, There is a Blynk app I have created wich you can import and get your auth code from the system.   The [Blynk QR Code](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/BlynkApplication.jpeg) is available for your use.   Simply follow the [Blynk Sharing instructions](http://docs.blynk.cc/#sharing) and all the controls will link up with the event handlers defined in the main .ino file.
+
 ### System Config ###
 As noted in the header section of the header section of the file, there is a specific character delimeter separating each config param.   The items in this section are used to set global variables that give overall system parameters which are used in loops and baseline counting.    
 
