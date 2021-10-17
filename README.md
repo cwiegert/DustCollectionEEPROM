@@ -91,3 +91,7 @@ The baseline configuration for the below outlet shows the Miter Saw is plugged i
 
 ޮ�0�Miter Saw�3�9.50�3�5.0�100�
 
+### Wifi Config Section ###
+Because there was no serial monitoring and ability to configure the gates open/close parameter without re-uploading the app, I used the [Blynk](https://blynk.io) system to connect to the arduino through wifi solution.   With that, there was a need to set the connection parameters without having to recompile/upload a system.   This section was modified in this version to use WIFI and no longer read the encrypted wifi file.   Have a look in the [EEPROM](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/EEPROM_Writer_DustCollector/README.md) to get the config of the parameters for connecting to wifi and linking the Blynk app to the arduino.
+
+
