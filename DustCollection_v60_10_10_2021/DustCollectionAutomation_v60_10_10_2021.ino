@@ -78,9 +78,9 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();                 // call
 // Hardware Serial on Mega, Leonardo, Micro...
 ESP8266     wifi(&EspSerial);
 BlynkTimer  timer;
-WidgetTerminal terminal(V8);
-WidgetTerminal confTerm(V22);
-WidgetTerminal encryptTerm(V40);
+WidgetTerminal terminal(V8);      //  terminal object in the Blynk app, main screen
+WidgetTerminal confTerm(V22);     //  terminal object in the Blynk app, configuration screen
+WidgetTerminal encryptTerm(V40);  //  terminal object in the Blynk app, encruption screen
 
 
 BLYNK_WRITE(V1)       // turn on and off dust collector button
