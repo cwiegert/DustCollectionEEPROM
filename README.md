@@ -7,6 +7,28 @@ Having completed the [Router Lift Automation](https://github.com/cwiegert/Router
 ## The Code ##
 Starting with the model similar to Bob's I just wanted to get the servo's, outlets and blast gates working.    Instead of hardcoding all the gate configurations, I decided to build on the configuration model used in the router lift project.   With 4 different configuration concepts, there are 4 different sections to the DustGatesConfiguration 53.cfg file.   
 
+Even though there are a number of things going on on the code, it's really very simple.    The loop function will check to see if the system is in automated or manual mode.   If automated, a for/Next loop will cycle through the # of outlets and assess for a -1. (if outlet # is -1, the tool has been taken off line).  If the outlet is active, check for a voltage change.   If the tool is on, turn it off, if off - turn the tool on.   Voltage change is defined by baseline, or running voltage.  In the check for voltage, millis () is used to sample the voltage for a number of milliseconds to account for debouncing.   If there was sensed current, check to see if the dust collector is on.   If so - run the gate map, open and close the gates to the gate associated with the outlet.  That's it... 
+
+on setup- the configuration is read from EEPROM, 
+```        readConfigEEPROM();     
+        readGatesEEPROM ();     
+        readOutletsEEPROM();    
+        readWIFIConfig();     
+```        
+
+the PWM is intialized
+```
+        pwm.begin();
+        pwm.setPWMFreq(60);  // Default is 1000mS
+        pinMode ( dust.dustCollectionRelayPin, OUTPUT);
+```
+wifi is started, the outlets are 0'd for baseline voltage, the Blynk app is intialized to ensure the names and values of the gates are loaded, the dust collector is turned off, and all the gates in the system are closed
+```     startWifiFromConfig ('^^', '^', 1);
+        resetVoltageSwitches();
+        setBlynkControls();
+        turnOffDustCollection();
+        closeAllGates (true);
+```
 Also, to really take advantage of this system, There is a Blynk app I have created wich you can import and get your auth code from the system.   The [Blynk QR Code](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/BlynkApplication.jpeg) is available for your use.   Simply follow the [Blynk Sharing instructions](http://docs.blynk.cc/#sharing) and all the controls will link up with the event handlers defined in the main .ino file.
 
 ### System Config ###
