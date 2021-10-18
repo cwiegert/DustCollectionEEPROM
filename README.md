@@ -1,6 +1,6 @@
 # DustCollectionEEPROM
 **v. 6.0 --** moved all configuration from SD Files to EEPROM, and set Blynk app to be able to configure a new gate from the app.  Also reset the setup to have simple functions to read the sections from EEPROM.    Wrote the EEPROM initilization application which uses the old config file to populate EEPROM.    The code must be run with Blynk v1.0, as the new Blynk 2.0 app will require a rewrite and re-coding the connectivity.  There will be a new branch with v.6.1 to do the new connectivity
-## **Blynk has updated their toolbox, this code can be used to understand the working model, but there is no migration path for the blynk app.   Will be writing another app and update shortly**
+## **10/18/2021 Blynk has updated their toolbox, this code can be used to understand the working model, but there is no migration path for the blynk app.   Will be writing another app and update shortly**
 
 ## Background ##
 Having completed the [Router Lift Automation](https://github.com/cwiegert/RouterLift-v5.6-EEPROM), it was time to move on to another project.   I was tired of running back and forth to the dust collector, and opening/closing all the gates to a machine.   I found Bob's automation on his youtube channel [I like to Make stuff](https://www.youtube.com/watch?v=D1JWH425o7c) took his code, started the concept and modified it to make the shop as configurable as possible.
