@@ -1,3 +1,8 @@
+#define BLYNK_TEMPLATE_ID "TMPL4y633j20"
+#define BLYNK_DEVICE_NAME "DustCollector EEPROM"
+#define BLYNK_AUTH_TOKEN "iLO3VC0Vq6XRdTAjKTb7Y3LT6ifV8E-r"
+
+// Replace the top 3 lines with the equivelant from your Blynk.Console device management  
 
 /*
    This code is from the project at
@@ -60,16 +65,23 @@
                                                     Alternatively, you can load the reserve file, DustCollectorEEPROM.cfg while will load a binary copy of the EEPROM image
                                                      To inactivate a gate or outlet - set set the tool Switch ID to -1 and the outlet will be ignored in the loop
                                                     There needs to be a switch ID configuration screen added to the Blynk app
+             Cory D. Wiegert 10/18/2021    v. 6.1  Implemented Blynk 2.0, which may require an update to all the Blynk Controls and connectivity
+
 ****************************************************************************************************************************************/
 #define BLYNK_PRINT Serial
 #include <Adafruit_PWMServoDriver.h>
 #include "DustCollectorGlobals.h"
 #include <ESP8266_Lib.h>
 #include <EEPROM.h>
+//#include "BlynkEdgent.h"
 #include <BlynkSimpleShieldEsp8266.h>
+//#include "Settings.h"
 
 
 #define EspSerial Serial1   //  connecting the wifi shield to TX1/RX1 on the arduino board
+//#define USE_ARDUINO_MEGA
+#define  BLYNK_PRINT Serial
+#define BLYNK_FIRMWARE_VERSION        "0.1.0"
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();                 // called this way, it uses the default address 0x40
 
@@ -83,26 +95,32 @@ WidgetTerminal terminal(V8);      //  terminal object in the Blynk app, main scr
 WidgetTerminal confTerm(V22);     //  terminal object in the Blynk app, configuration screen
 WidgetTerminal encryptTerm(V40);  //  terminal object in the Blynk app, encruption screen
 
-BLYNK_WRITE(V1)     //  turn on and off dust collector button
+BLYNK_WRITE (V1)     //  turn on and off dust collector button
 {
   if (manualOveride == true)
     if (param.asInt() == 1)           // button is pressed to on
-      if (collectorIsOn == false)     // collector is not running
-        turnOnDustCollection();
-      else if (collectorIsOn == true) //  collector is running
+      {
+        if (collectorIsOn == false)     // collector is not running
+          turnOnDustCollection();
+      } 
+    else if (collectorIsOn == true) //  collector is running
         turnOffDustCollection();
 }
 
-BLYNK_WRITE(V2)     //  Gate drop down, selecting which gate is opened or closed
+BLYNK_WRITE (V2)     //  Gate drop down, selecting which gate is opened or closed
 {
   blynkSelectedGate = param.asInt() - 1;
+  Blynk.virtualWrite(V3, blastGate[blynkSelectedGate].openPos);
+  Blynk.syncVirtual(V3);
+  Blynk.virtualWrite(V4, blastGate[blynkSelectedGate].closePos);
+  Blynk.syncVirtual(V4);
 
 }
 
-BLYNK_WRITE(V5)     //  button for opening a gate.   Will set highlight back to middle button after processing click
+BLYNK_WRITE (V5)     //  button for opening a gate.   Will set highlight back to middle button after processing click
 {
   if (manualOveride == true)
-    if (param.asInt() == 1)
+    if (param.asInt() == 0)
     {
 
       terminal.print ( "opening machine => ");
@@ -111,20 +129,20 @@ BLYNK_WRITE(V5)     //  button for opening a gate.   Will set highlight back to 
       Blynk.virtualWrite(V3, blastGate[blynkSelectedGate].openPos);
       Blynk.syncVirtual(V3);
       runGateMap (blynkSelectedGate);
-      Blynk.virtualWrite(V5, 2 );     // set the control to hold, so we can use the open and close buttons again
+      Blynk.virtualWrite(V5, 1 );     // set the control to hold, so we can use the open and close buttons again
     }
-    else if (param.asInt() == 3)
+    else if (param.asInt() == 2)
     {
       terminal.print("   param ==> ");
       terminal.println (param.asInt());
       closeGate (blynkSelectedGate, false);
       Blynk.virtualWrite(V4, blastGate[blynkSelectedGate].closePos);
       Blynk.syncVirtual(V4);
-      Blynk.virtualWrite(V5, 2);   // set the control to hold, so we can use the open and close buttons again
+      Blynk.virtualWrite(V5, 1);   // set the control to hold, so we can use the open and close buttons again
     }
 }
 
-BLYNK_WRITE(V6)     //  changes operation from automated monitoring | manual use of Blynk app
+BLYNK_WRITE (V6)     //  changes operation from automated monitoring | manual use of Blynk app
 {
   if (param.asInt() == 1)
     manualOveride = true;
@@ -132,7 +150,7 @@ BLYNK_WRITE(V6)     //  changes operation from automated monitoring | manual use
     manualOveride = false;
 }
 
-BLYNK_WRITE(V7)     //  text on screen to close all the gates in the system.   Similar to a reinitialization
+BLYNK_WRITE (V7)     //  text on screen to close all the gates in the system.   Similar to a reinitialization
 {
   if (manualOveride == true)
     if (param.asInt() == 1)
@@ -147,7 +165,7 @@ BLYNK_WRITE (V9)    //  text button on screen to clear the terminal widget
   terminal.clear();
 }
 
-BLYNK_WRITE(V12)    //  button that reads the voltage sensors of selected outlet
+BLYNK_WRITE (V12)    //  button that reads the voltage sensors of selected outlet
 {
   terminal.println(param.asInt());
   if (param.asInt() == 2)
@@ -163,17 +181,26 @@ BLYNK_WRITE(V12)    //  button that reads the voltage sensors of selected outlet
   }
 }
 
-BLYNK_WRITE(V11)    //  menu drop down to choose which outlet to monitor
+BLYNK_WRITE (V11)    //  menu drop down to choose which outlet to monitor
 {
   inspectionPin = toolSwitch[param.asInt() - 1].voltSensor;
 }
 
-BLYNK_WRITE (V15)   //  v.6.0 -- no longer active
-                    //text button to reset the SD card.   Useful if making changes to the config file, doesn't require a restart of the Arduino script
+BLYNK_WRITE (V14)   //  button to set the debug flag.   This will allow manual opening and closing of gates, and monitoring outlet curent
 {
+  if (param.asInt() == 1)
+    dust.DEBUG = 1;
+  else
+    dust.DEBUG = 0;
 }
 
-BLYNK_WRITE(V16)    //  menu text, turns on the debug tracing.    Don't need to set the config file, can turn off debugging by clicking button again
+BLYNK_WRITE (V15)   //  v.6.0 -- no longer active
+                   
+{ 
+  //text button to reset the SD card.   Useful if making changes to the config file, doesn't require a restart of the Arduino script
+}
+
+BLYNK_WRITE (V16)    //  menu text, turns on the debug tracing.    Don't need to set the config file, can turn off debugging by clicking button again
 {
   if (param.asInt() == 1)
   {
@@ -185,7 +212,7 @@ BLYNK_WRITE(V16)    //  menu text, turns on the debug tracing.    Don't need to 
     dust.DEBUG = false;
 }
 
-BLYNK_WRITE(V18)    //  drop down for which gate to configure - lists the blas gates (on the config screen)
+BLYNK_WRITE (V18)    //  drop down for which gate to configure - lists the blas gates (on the config screen)
 {
   blynkSelectedGate = param.asInt() - 1;  
   Blynk.virtualWrite(V13, blastGate[blynkSelectedGate].gateID);
@@ -202,7 +229,7 @@ BLYNK_WRITE(V18)    //  drop down for which gate to configure - lists the blas g
   Blynk.syncVirtual(V44);
 }
 
-BLYNK_WRITE(V19)    //  open close toggle switch to tell the gate to open or close (on config screen)
+BLYNK_WRITE (V19)    //  open close toggle switch to tell the gate to open or close (on config screen)
 {
   if (manualOveride == true)
   {
@@ -222,7 +249,6 @@ BLYNK_WRITE(V19)    //  open close toggle switch to tell the gate to open or clo
 
       //Blynk.syncVirtual(V3);
 
-      Blynk.virtualWrite(V19, 2 );     // set the control to hold, so we can use the open and close buttons again
     }
     else if (param.asInt() == 3)
     {
@@ -250,7 +276,7 @@ BLYNK_WRITE (V20)   //  number field on config screen used to set the open limit
       blastGate[blynkSelectedGate].openPos = highPos;
     }
   else
-    blastGate[dust.NUMBER_OF_GATES + 1].openPos = param.asInt();
+    blastGate[dust.NUMBER_OF_GATES].openPos = param.asInt();
 }
 
 BLYNK_WRITE (V21)   //  number field on the config screen used to set the close limit on the servo
@@ -261,20 +287,20 @@ BLYNK_WRITE (V21)   //  number field on the config screen used to set the close 
       blastGate[blynkSelectedGate].closePos = lowPos;
     }
   else
-    blastGate[dust.NUMBER_OF_GATES + 1].closePos = param.asInt();
+    blastGate[dust.NUMBER_OF_GATES].closePos = param.asInt();
 
 }
 
-BLYNK_WRITE(V23)    //  button used to clear the terminal on the config screen
+BLYNK_WRITE (V23)    //  button used to clear the terminal on the config screen
 {
   confTerm.clear();
 }
 
-BLYNK_WRITE(V30)    //  Text field on the encrypt screen used to input the wifi config file name
+BLYNK_WRITE (V30)    //  Text field on the encrypt screen used to input the wifi config file name
 {
 
 }
-BLYNK_WRITE(V31)    //  toggle control on the encrypt screen used to tell whether to decrypt or encrypt the input file name
+BLYNK_WRITE (V31)    //  toggle control on the encrypt screen used to tell whether to decrypt or encrypt the input file name
 {                   //  modified v6.0 --- commented out, the ENCRYPT screen will not work
   /*char   delim[2] = {char(222), '\0'};
   char   space = char(223);
@@ -349,19 +375,19 @@ BLYNK_WRITE (V33)   //  text input field to set the SSID for the wifi connection
     encryptTerm.flush();
   }
 
-BLYNK_WRITE(V34)    //  text input on encrypt screen to set the wifi password.   decrypted or seet manually
+BLYNK_WRITE (V34)    //  text input on encrypt screen to set the wifi password.   decrypted or seet manually
 {
   strcpy(blynkWIFIConnect.pass, param.asStr());
   encryptTerm.println(blynkWIFIConnect.pass);
   encryptTerm.flush();
 }
-BLYNK_WRITE(V35)    //  text input on encrypt screen to set the blynk server connection  decrypted or set manually
+BLYNK_WRITE (V35)    //  text input on encrypt screen to set the blynk server connection  decrypted or set manually
 {
   strcpy(blynkWIFIConnect.server, param.asStr());
   encryptTerm.println(blynkWIFIConnect.server);
   encryptTerm.flush();
 }
-BLYNK_WRITE(V36)    //  text input on encrypt screen to set the blynk server port (local)  decrypted or set manually
+BLYNK_WRITE (V36)    //  text input on encrypt screen to set the blynk server port (local)  decrypted or set manually
 {
   strcpy(blynkWIFIConnect.port, param.asStr());
   encryptTerm.println(blynkWIFIConnect.port);
@@ -374,14 +400,14 @@ BLYNK_WRITE (V37)   //  text input on encrypt screen to set the speed of the wif
   encryptTerm.println (blynkWIFIConnect.ESPSpeed);
   encryptTerm.flush();
 }
-BLYNK_WRITE(V38)    //  text input on encrypt screen to set the boolean for local or blynk server    decrypted or set manually
+BLYNK_WRITE (V38)    //  text input on encrypt screen to set the boolean for local or blynk server    decrypted or set manually
 {
   strcpy(blynkWIFIConnect.BlynkConnection, param.asStr());
   encryptTerm.println(blynkWIFIConnect.BlynkConnection);
   encryptTerm.flush();
 }
 
-BLYNK_WRITE(V39)    //  text input on encrypt screen to set the blynk app auth key.   decrypted or set manually
+BLYNK_WRITE (V39)    //  text input on encrypt screen to set the blynk app auth key.   decrypted or set manually
 {
   strcpy( blynkWIFIConnect.auth, param.asStr());
   encryptTerm.println(blynkWIFIConnect.auth);
@@ -436,61 +462,231 @@ BLYNK_WRITE (V25)   //  Added in v 6.0 button to save values from the UI to the 
     {
       if (gateAdded)
         {
-          dust.NUMBER_OF_GATES += 1;
-          gates += 1;
+          
+          dust.NUMBER_OF_GATES +=1;
+          gates += 1; 
           gateAdded = false;
         }
       BlynkParamAllocated clearout(256);    // valiable to clear the existing values from the menu dropdown        
       Blynk.setProperty(V2, "labels", clearout);     // clear all existing values from menu
       Blynk.setProperty(V18, "labels", clearout);      // clear all existing values from gate menue
       for (int i = 0; i < dust.NUMBER_OF_GATES; i++)
-        clearout.add (blastGate[i].gateName);
+        {
+          clearout.add (blastGate[i].gateName);
+        }
       Blynk.setProperty(V2, "labels", clearout);   // populate the menu with the name of each outlet
-      Blynk.virtualWrite (V2, 3);   // Highlights the sander as the selected gate
+    // Blynk.virtualWrite (V2, 3);   // Highlights the sander as the selected gate
       Blynk.setProperty(V18, "labels", clearout);
       Blynk.syncVirtual(V2);
       Blynk.syncVirtual(V18);
+       
     }    
 }
 
-BLYNK_WRITE(V13)    //  control to configure the GATEID from the blynk UI.    added in v 6.0
+BLYNK_WRITE (V13)    //  control to configure the GATEID from the blynk UI.    added in v 6.0
   {                 //  modified v6.0
     if (gateAdded)
       {
         if (dust.NUMBER_OF_GATES +1 < 20)
-          blastGate[dust.NUMBER_OF_GATES+1].gateID = param.asInt();
+          blastGate[dust.NUMBER_OF_GATES].gateID = param.asInt();
       }
     else
       blastGate[blynkSelectedGate].gateID = param.asInt();
   }
-BLYNK_WRITE(V10)    //  control to configure the pwmSlot from the blynk UI.   added in v6.0
+BLYNK_WRITE (V10)    //  control to configure the pwmSlot from the blynk UI.   added in v6.0
   {               //  modified v6.0
     if (gateAdded)
       {
         if (dust.NUMBER_OF_GATES +1 < 20)
-          blastGate[dust.NUMBER_OF_GATES+1].pwmSlot = param.asInt();
+          blastGate[dust.NUMBER_OF_GATES].pwmSlot = param.asInt();
       }
     else
       blastGate[blynkSelectedGate].pwmSlot = param.asInt();
   }
-BLYNK_WRITE(V44)    //  control to configure the gateName from the Blynk UI   added in v 6.0
+BLYNK_WRITE (V44)    //  control to configure the gateName from the Blynk UI   added in v 6.0
   {
     if (gateAdded)
-      if (dust.NUMBER_OF_GATES +1 < 20)
-        strcpy(blastGate[dust.NUMBER_OF_GATES+1].gateName,param.asStr());
-      else
-        strcpy(blastGate[blynkSelectedGate].gateName, param.asStr());
+      {
+        if (dust.NUMBER_OF_GATES  < 20)
+          strcpy(blastGate[dust.NUMBER_OF_GATES].gateName,param.asStr());
+      }  
+    else
+      strcpy(blastGate[blynkSelectedGate].gateName, param.asStr());
+    
   }
 
-BLYNK_WRITE(V45)    //  control to configure the gate bitmap from the Blynk UI   added in v6.0
+BLYNK_WRITE (V45)    //  control to configure the gate bitmap from the Blynk UI   added in v6.0
   {
     if (gateAdded)
       {
         if (dust.NUMBER_OF_GATES +1 < 20)
-          strcpy(blastGate[dust.NUMBER_OF_GATES+1].gateConfig, param.asStr());
+          strcpy(blastGate[dust.NUMBER_OF_GATES].gateConfig, param.asStr());
       }
     else
       strcpy(blastGate[blynkSelectedGate].gateConfig, param.asStr());
+  }
+
+BLYNK_WRITE (V46)
+  {
+    if (outletAdded)
+      {
+        if(outlets + 1 < 16)
+          toolSwitch[outlets].switchID = param.asInt();
+      }
+    else
+      toolSwitch[selectedOutlet].switchID = param.asInt(); 
+  }
+
+BLYNK_WRITE(V47)
+  {
+    if (outletAdded)
+      {
+        if(outlets + 1 < 16)
+        strcpy(toolSwitch[outlets].tool, param.asStr());
+      }
+    else
+      strcpy(toolSwitch[selectedOutlet].tool, param.asStr()); 
+  }
+
+BLYNK_WRITE(V48)
+  {
+    if (outletAdded)
+      {
+        if(outlets + 1 < 16)
+          toolSwitch[outlets].voltSensor = param.asInt();
+      }
+    else
+      toolSwitch[selectedOutlet].voltSensor = param.asInt(); 
+
+  }
+
+BLYNK_WRITE(V49)
+  {
+    if (outletAdded)
+      {
+        if(outlets + 1 < 16)
+          toolSwitch[outlets].voltBaseline = atof(param.asStr());
+      }
+    else
+      toolSwitch[selectedOutlet].voltBaseline = atof(param.asStr()); 
+
+  }
+
+BLYNK_WRITE(V50)
+  {
+    if (outletAdded)
+      {
+        if(outlets + 1 < 16)
+          toolSwitch[outlets].mainGate = param.asInt();
+      }
+    else
+      toolSwitch[selectedOutlet].mainGate = param.asInt(); 
+
+  }
+
+BLYNK_WRITE(V51)
+  {
+    if (outletAdded)
+      {
+        if(outlets + 1 < 16)
+          toolSwitch[outlets].VCC = atof(param.asStr());
+      }
+    else
+      toolSwitch[selectedOutlet].VCC = atof(param.asStr()); 
+
+  }
+
+BLYNK_WRITE(V52)
+{
+  if (outletAdded)
+    {
+      if(outlets + 1 < 16)
+        toolSwitch[outlets].ampThreshold = atof(param.asStr());
+    }
+  else
+    toolSwitch[selectedOutlet].ampThreshold = atof(param.asStr()); 
+
+}
+
+BLYNK_WRITE(V53)
+  {
+    if (outletAdded)
+      {
+        if(outlets + 1 < 16)
+          toolSwitch[outlets].voltDiff = atof(param.asStr());
+      }
+    else
+      toolSwitch[selectedOutlet].voltDiff = atof(param.asStr()); 
+
+  }
+
+BLYNK_WRITE(V54)
+  {
+    if (outletAdded)
+      {
+        if(outlets + 1 < 16)
+          toolSwitch[outlets].isON = param.asInt();
+      }
+    else
+      toolSwitch[selectedOutlet].isON = param.asInt(); 
+
+  }
+
+BLYNK_WRITE(V55)
+  {
+    if (param.asInt())
+      {
+        BLYNK_WRITE(V46);
+        BLYNK_WRITE(V47);
+        BLYNK_WRITE(V48);
+        BLYNK_WRITE(V49);
+        BLYNK_WRITE(V50);
+        BLYNK_WRITE(V51);
+        BLYNK_WRITE(V52);
+        BLYNK_WRITE(V53);
+        BLYNK_WRITE(V54);
+        if(outletAdded)
+          outletAdded = false;
+      }
+  }
+
+BLYNK_WRITE(V56)
+  {
+    if (param.asInt())
+      EEPROM.put(OUTLET_ADDRESS, toolSwitch);
+  }
+
+BLYNK_WRITE(V57)
+  {
+    if (param.asInt())
+      {
+        outlets += 1;
+        Blynk.virtualWrite(V46, 0);
+        Blynk.virtualWrite(V47, "");
+        Blynk.virtualWrite(V48, 0);
+        Blynk.virtualWrite(V49, 0);
+        Blynk.virtualWrite(V50, 0);
+        Blynk.virtualWrite(V51, "5.0");
+        Blynk.virtualWrite(V52, "0");
+        Blynk.virtualWrite(V53, "0");
+        Blynk.virtualWrite(V54, 0);
+        outletAdded = true;
+
+      }
+  }
+
+BLYNK_WRITE(V58)
+  {
+    selectedOutlet = param.asInt();
+    Blynk.virtualWrite(V46, toolSwitch[selectedOutlet].switchID);
+    Blynk.virtualWrite(V47, toolSwitch[selectedOutlet].tool);
+    Blynk.virtualWrite(V48, toolSwitch[selectedOutlet].voltSensor);
+    Blynk.virtualWrite(V49, toolSwitch[selectedOutlet].voltBaseline);
+    Blynk.virtualWrite(V50, toolSwitch[selectedOutlet].mainGate);
+    Blynk.virtualWrite(V51, toolSwitch[selectedOutlet].VCC);
+    Blynk.virtualWrite(V52, toolSwitch[selectedOutlet].ampThreshold);
+    Blynk.virtualWrite(V53, toolSwitch[selectedOutlet].voltDiff);
+    Blynk.virtualWrite(V54, toolSwitch[selectedOutlet].isON);
   }
 
 void setup()
@@ -502,13 +698,13 @@ void setup()
 
 
     Serial.begin(500000);
-    delay(1000);
+    delay(100);
     readConfigEEPROM();     //  modified v6.0
     readGatesEEPROM ();     //  modified v6.0
     readOutletsEEPROM();    //  modified v6.0
     readWIFIConfig();       //  modified v6.0
 
-    if (dust.DEBUG == true)
+   /* if (dust.DEBUG == true)
     {
       for (int index = 0; index < dust.NUMBER_OF_GATES; index++)
       {
@@ -521,13 +717,13 @@ void setup()
         writeDebug ("    " + String(toolSwitch[index].mainGate), 1);
         writeDebug ("tools ==> " + String(index) + "   VCC from file ==> " + String (toolSwitch[index].VCC), 1);
       }
-    }
+    }*/
 
     pwm.begin();
     pwm.setPWMFreq(60);  // Default is 1000mS
     pinMode ( dust.dustCollectionRelayPin, OUTPUT);
-    startWifiFromConfig ('^^', '^', 1);      // read the wifi section of the config file, start the wifi, and connect to the blynk server
-    // initialize all the gates, dust collector and the baseline voltage for the switches          
+    //BlynkEdgent.begin();
+    startWifiFromConfig ('^^', '^', 1);      
     resetVoltageSwitches();
     setBlynkControls();
     turnOffDustCollection();
@@ -543,6 +739,7 @@ void loop()
 {
   int   gateIndex = 0;
   int   activeTool = 50;
+//  BlynkEdgent.run();
   if (manualOveride == false)
   {
     for (int i = 0; i < dust.NUMBER_OF_TOOLS; i++) //  loop through all the tools to see if current has started flowing
@@ -553,8 +750,8 @@ void loop()
         {
           if (toolSwitch[i].isON == true)
           {
-            if (dust.DEBUG == true)
-              writeDebug(String (toolSwitch[i].tool) + "  has been turned off, dust collector should go off", 1);
+           /* if (dust.DEBUG == true)
+              writeDebug(String (toolSwitch[i].tool) + "  has been turned off, dust collector should go off", 1);*/
 
             // the running tool is off, and we need to stop looking at other tools and turn off the dust collector */
 
@@ -576,11 +773,11 @@ void loop()
           if (toolSwitch[i].isON == true)
           {
             i = dust.NUMBER_OF_TOOLS;
-            if (dust.DEBUG == true)
+           /* if (dust.DEBUG == true)
             {
               writeDebug(String (toolSwitch[i].tool) + "  is still running, dumping out of checking loop", 1);
               writeDebug("    The current active tool is ==>  " + String(activeTool), 1);
-            }
+            }*/
           }   // end of thet toolSwitch[i].isON
         }   // end of else
       }  // end of testing active tools.   This is the if statement above which test for active tool
@@ -604,6 +801,7 @@ void loop()
     }       // End of else section
   }                 // end of check for manual overide
   Blynk.run();
+  //BlynkEdgent.run();
   timer.run();
 
 }   //   end of loop()
@@ -620,28 +818,36 @@ void loop()
 void startWifiFromConfig (char sectDelim, char delim[], int WifiStart)
   {
     int      index;
-   if (dust.DEBUG == true)
+   /*if (dust.DEBUG == true)
     {
       writeDebug ("auth == > " + String (blynkWIFIConnect.auth), 1);
       writeDebug ("wifi coms speed ==> " + String(blynkWIFIConnect.ESPSpeed) + "  | Connection ==> " + String(blynkWIFIConnect.BlynkConnection), 1);
       writeDebug ("ssid ==> " + String(blynkWIFIConnect.ssid) + "  |  pass ==> " + String(blynkWIFIConnect.pass) + "  | server ==> " + String (blynkWIFIConnect.server) + " | serverPort ==> " + String(blynkWIFIConnect.serverPort), 1);
       //delay(500);
-    }
+    }*/
     // Set ESP8266 baud rate
     EspSerial.begin(blynkWIFIConnect.speed);
+//  Debugging the connection to Blynk server    
+    strcpy(blynkWIFIConnect.BlynkConnection, "Blynk");
      if (WifiStart)
       {
-        if ( strcmp(blynkWIFIConnect.BlynkConnection, "Local") == 0 )
+        if ( !strcmp(blynkWIFIConnect.BlynkConnection, "Local"))
           {
             if (dust.DEBUG)
               writeDebug("trying to connect to the local server",1);
-            Blynk.begin(blynkWIFIConnect.auth, wifi, blynkWIFIConnect.ssid, blynkWIFIConnect.pass, blynkWIFIConnect.server, blynkWIFIConnect.serverPort);
-            
-          //  Blynk.begin("UemFhawjdXVMaFOaSpEtM91N9ay1SzAI", wifi, "Everest", "<pass>", "192.168.1.66", <port>);
+ //v 1.0 Blynk Library connection           Blynk.begin(blynkWIFIConnect.auth, wifi, blynkWIFIConnect.ssid, blynkWIFIConnect.pass, blynkWIFIConnect.server, blynkWIFIConnect.serverPort);
+// v1.0 Blynk connect string local --> Blynk.begin("UemFhawjdXVMaFOaSpEtM91N9ay1SzAI", wifi, "Everest", "<pass>", "192.168.1.66", <port>);
           }
-        else if (strcmp(blynkWIFIConnect.BlynkConnection,"Blynk") == 0)
+        else if (!strcmp(blynkWIFIConnect.BlynkConnection,"Blynk"))
           {
-            Blynk.begin(blynkWIFIConnect.auth, wifi, blynkWIFIConnect.ssid, blynkWIFIConnect.pass, "blynk-cloud.com", 80);
+  
+            strcpy(blynkWIFIConnect.auth,BLYNK_AUTH_TOKEN);
+            strcpy(blynkWIFIConnect.ssid,"Everest\0");
+            strcpy(blynkWIFIConnect.pass,"67NorseSk!\0");
+            strcpy(blynkWIFIConnect.BlynkConnection,"Blynk\0"); 
+            blynkWIFIConnect.serverPort = 80; 
+            
+            Blynk.begin(blynkWIFIConnect.auth, wifi, blynkWIFIConnect.ssid, blynkWIFIConnect.pass);
           }
         
       }  // end of if Wifi start  // end of if Wifi start
@@ -676,27 +882,37 @@ void setBlynkControls()
 
   Blynk.setProperty(V11, "labels", clearout);    // clear all existing values from menu
   Blynk.setProperty(V2, "labels", clearout);     // clear all existing values from menu
-  Blynk.setProperty(V18, "labels", clearout);      // clear all existing values from gate menue
+  Blynk.setProperty(V18, "labels", clearout);      // clear all existing values from gate menu
+  Blynk.setProperty(V58, "lables", clearout);
   for (int i = 0; i < dust.NUMBER_OF_TOOLS; i++)
     items.add (toolSwitch[i].tool);
+  
+  Blynk.setProperty(V58, "labels", items);
   Blynk.setProperty (V11, "labels", items);      // populate menu with the name of each tool
+
   Blynk.virtualWrite (V11, 1);
+  Blynk.syncVirtual(V11);
+  Blynk.syncVirtual(V58);
   for (int i = 0; i < dust.NUMBER_OF_GATES; i++)
     switches.add (blastGate[i].gateName);
   Blynk.setProperty(V2, "labels", switches);   // populate the menu with the name of each outlet
   Blynk.virtualWrite (V2, 3);
   Blynk.setProperty(V18, "labels", switches);
   Blynk.syncVirtual(V2);
+  Blynk.syncVirtual(V18);
   if (manualOveride == false)
     Blynk.virtualWrite(V6, false);
   else
     Blynk.virtualWrite(V6, true);
+  Blynk.virtualWrite(V1, 0);
   Blynk.virtualWrite(V3, 0);
   Blynk.virtualWrite(V4, 0);
-  Blynk.virtualWrite(V5, 2);
+  Blynk.virtualWrite(V5, 1);
   Blynk.virtualWrite(V13, 0);
   Blynk.virtualWrite (V12, 1);
   Blynk.syncVirtual(V12);
+  Blynk.virtualWrite(V14, 0);
+  Blynk.syncVirtual(V14);
   Blynk.virtualWrite(V16, 0);
   Blynk.syncVirtual(V16);
   Blynk.virtualWrite(V20, 0);
@@ -711,7 +927,7 @@ void setBlynkControls()
   Blynk.virtualWrite(V36, blynkWIFIConnect.port);
   Blynk.virtualWrite(V37, blynkWIFIConnect.speed);
   Blynk.virtualWrite(V38, blynkWIFIConnect.auth);
-
+  Blynk.syncAll();
 
   terminal.clear();
   confTerm.clear();
@@ -729,12 +945,12 @@ void  runGateMap (int gateIndex)
     turnOnDustCollection();
   for (int s = 0; s < dust.NUMBER_OF_GATES; s++)
   {
-    if (dust.DEBUG == true)
+    /*if (dust.DEBUG == true)
     {
       writeDebug ("gate map ==> " + String(blastGate[gateIndex].gateConfig), 1);
       writeDebug ("gate # clycling through map ==> " + String(s), 1);
       //delay(500);
-    }
+    }*/
     if (blastGate[gateIndex].gateConfig[s] == '1')
       openGate(s);                     // if there is a '1' in the s index of the array, open the gate
     else
@@ -774,12 +990,12 @@ boolean checkForVoltageChange(int which)
   AmpsRMS = (VRMS * 1000) / dust.mVperAmp;             // Sensitivirty defined by the rojojax model (.xxx)   See config file
   if (dust.DEBUG == true)
   {
-    writeDebug ("*****************************\n", 1);
+   /* writeDebug ("*****************************\n", 1);
     writeDebug ("tool name ==> " +  String(toolSwitch[which].tool), 1);
     writeDebug ("   raw reading from sensor ==> ", 0);
     Serial.println (Voltage);
     writeDebug ("   baseline voltage from init ==> " + String (toolSwitch[which].voltBaseline), 1);
-    writeDebug("___________________", 1);
+    writeDebug("___________________", 1);*/
     terminal.print ( toolSwitch[which].tool);
     terminal.print ("  voltage ==> ");
     terminal.println (Voltage);
@@ -835,7 +1051,7 @@ void turnOffDustCollection() {
 
   digitalWrite(dust.dustCollectionRelayPin, 0);
   collectorIsOn = false;
-  Blynk.virtualWrite(V1, false);
+  Blynk.virtualWrite(V1, 0);
   if (manualOveride == true)
   {
     terminal.println("turning dust collector off");
@@ -999,6 +1215,8 @@ void readOutletsEEPROM()
 void readConfigEEPROM()
   { 
     EEPROM.get (SET_CONFIG, dust);
+    outlets = dust.NUMBER_OF_TOOLS;
+    gates = dust.NUMBER_OF_GATES;
   }
 
 /***********************************************************
@@ -1015,7 +1233,6 @@ void readConfigEEPROM()
 void readWIFIConfig()
   {
     EEPROM.get(WIFI_ADDRESS, blynkWIFIConnect);
-    //blynkWIFIConnect.speed = atol(blynkWIFIConnect.ESPSpeed);
   }
 /*************************************************************
  *  if there is an update to the WIFI settings in the BLYNK app 

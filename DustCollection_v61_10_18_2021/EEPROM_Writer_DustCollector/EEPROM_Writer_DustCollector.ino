@@ -1,3 +1,10 @@
+// Fill-in information from your Blynk Template here
+#define BLYNK_TEMPLATE_ID "TMPL4y633j20"
+#define BLYNK_DEVICE_NAME "DustCollector EEPROM"
+
+#define BLYNK_FIRMWARE_VERSION        "0.1.0"
+
+#define BLYNK_PRINT Serial
 /**************************************************************************************************
  * Test program to figure out if we can use EEPROM to store variables for setup and managmement
  * Would like to have a tool that allows us to set EEPROM for each stepper motor, so we don't have to 
@@ -25,12 +32,18 @@
  *                                              the dust collection system will use EEPROM to stores the configuration settings for the 
  *                                              gates, outlets, and wifi.  There is an export function here to archive a version of the config
  *                                              Also modified the Blynk app to support changes to EEPROM during config
+ *        Cory D. Wiegert   v6.1.10.18.2021     Modified the outlet config section to adjust for floats in the gate structures
+ *                                              tested the save to file, import to file and have continuity
  **********************************************************************************/
 
 #include <EEPROM.h>
 #include "SdFat.h"
 #include "DustCollectorGlobals.h"
 #include <AESLib.h>
+//#define USE_NODE_MCU_BOARD
+//#include "BlynkEdgent.h"
+
+
 
 //SdFat   sdCard;                        //  pointer to the SD card reader.   Used in storing config and memory files
 //SdBaseFile  fConfig;
@@ -44,7 +57,7 @@
  void clearEEProm ( int boardSize)
   {
     int lastx = 0;
-    Serial.println("clearing the EEPROM");
+    Serial.println(F("clearing the EEPROM"));
     for (int x = 0; x< EEPROM.length(); x++)
       {
         if (x == lastx + 80)
@@ -57,7 +70,7 @@
         EEPROM.write(x, 255);
       }
      Serial.println("");
-     Serial.println("EEPROM Cleared");
+     Serial.println(F("EEPROM Cleared"));
   }
   
  /***********************************************************************
@@ -66,60 +79,62 @@
   *    function to read the initial setup line in the config file.   sets the 
   *    global variables as functioning in the switch statement.
   ************************************************************************/
-  void readConfig (char sectDelim, char delim[])
+  void readConfig (char configDelim, char delim[])
     {
       char          servoString[160] = {'\0'};
       char          memFile[30] = {'\0'};
       char          *token;
       int           index;
       int           bytesRead;
+      char          serGet;
+      char          checker;
       
-
-      bytesRead = fConfig.fgets(servoString, sizeof(servoString)); 
-          token = strtok(servoString, delim);   
-
+      bytesRead = fConfig.fgets(servoString, sizeof(servoString));
+      while ((servoString[0] != configDelim) && fConfig.available())                         // test to see if this is a comments section
+        bytesRead = fConfig.fgets(servoString, sizeof(servoString));
+      token = strtok(servoString, delim);  
       if (servoString[0] != '#')              //  checking the commented gages
-            { 
-              for (int index = 0; index < 9; index++)      
+        { 
+          for (int index = 0; index < 9; index++)      
+          {
+            token = strtok(NULL, delim);
+            switch (index)
               {
-                token = strtok(NULL, delim);
-                switch (index)
-                  {
-                    case 0:
-                      dust.servoCount = atoi(token);
-                      break;
-                    case 1:
-                      dust.NUMBER_OF_TOOLS = atoi(token);
-                      break;
-                    case 2:
-                      dust.NUMBER_OF_GATES = atoi(token);
-                      break;
-                    case 3:
-                      dust.DC_spindown = atoi(token);
-                      break;
-                    case 4:
-                      dust.dustCollectionRelayPin = atoi(token);
-                      break;
-                    case 5:
-                      dust.manualSwitchPin = atoi(token);
-                      break;
-                    case 6:
-                      dust.mVperAmp = atof(token);
-                      break;
-                    case 7:
-                      dust.debounce = atoi (token);
-                      break;
-                    case 8:
-                      dust.DEBUG = atoi(token);            // last parameter of string, will set the DEBUG variable to send messages to serial monitor
-                      break;
-                  } //end of case statement
-              }   // end of for loop parsing line
-            } // end of test whether or not the tool was active/commented out
+                case 0:
+                  dust.servoCount = atoi(token);
+                  break;
+                case 1:
+                  dust.NUMBER_OF_TOOLS = atoi(token);
+                  break;
+                case 2:
+                  dust.NUMBER_OF_GATES = atoi(token);
+                  break;
+                case 3:
+                  dust.DC_spindown = atoi(token);
+                  break;
+                case 4:
+                  dust.dustCollectionRelayPin = atoi(token);
+                  break;
+                case 5:
+                  dust.manualSwitchPin = atoi(token);
+                  break;
+                case 6:
+                  dust.mVperAmp = atof(token);
+                  break;
+                case 7:
+                  dust.debounce = atoi (token);
+                  break;
+                case 8:
+                  dust.DEBUG = atoi(token);            // last parameter of string, will set the DEBUG variable to send messages to serial monitor
+                  break;
+              } //end of case statement
+          }   // end of for loop parsing line
+        } // end of test whether or not the tool was active/commented out
       writeDebug ("servo count == > " + String(dust.servoCount) + " | NUMBER_OF_TOOLS ==> " + String(dust.NUMBER_OF_TOOLS), 1);
       writeDebug ("NUMBER_OF_GATES ==> " + String (dust.NUMBER_OF_GATES) + " | DC_SpinDown == > " + String(dust.DC_spindown), 1);
       writeDebug ("DC Relay Pin ==> " + String(dust.dustCollectionRelayPin) + " | Manual Switch ==> " + String(dust.manualSwitchPin), 1);
       writeDebug(" mVperAmp ==> " + String(dust.mVperAmp) + " | debounce ==> " + String(dust.debounce) + " | DEBUG ==> " + String(dust.DEBUG), 1);
-       bytesRead = fConfig.fgets(servoString, sizeof(servoString));
+    //fConfig.close();
     }
   
   /***********************************************************************
@@ -139,21 +154,23 @@
       int           counter;
       char          checker;
       int           bytesRead;
+      char          serGet;
 
+      //fConfig.open(fileName, O_READ);
       bytesRead = fConfig.fgets(gateString, sizeof(gateString));
-      while (gateString[0] == sectDelim)                          // test to see if this is a comments section
+      while (gateString[0] != sectDelim)                          // test to see if this is a comments section
         {
           bytesRead = fConfig.fgets(gateString, sizeof(gateString));
-      
         }
   //  Loop through the configuration and get the blast gate configurations
       counter = 0;
   
-      while (gateString[0] != sectDelim)
+      while (gateString[0] == sectDelim)
         {                   
           if ( gateString[0] != '#')
             {
               token = strtok(gateString, delim);
+
               for (index = 0; index < 6; index++)      
                 {
                   token = strtok(NULL, delim);  
@@ -185,7 +202,6 @@
             }   // end of the active switch, test for the commenting of the blast gates
           bytesRead = fConfig.fgets(gateString, sizeof(gateString));      
         }   // end of the section for all the blast gates
-
       return counter;
     }
   
@@ -212,13 +228,14 @@
         int           bytesRead;
               
       //  Loop through the configuration and get the electric switches configuration
+
         counter = 0;
         bytesRead = fConfig.fgets(gateString, sizeof(gateString));
         
-        while (gateString[0] == sectDelim)
+        while (gateString[0] != sectDelim)
           bytesRead = fConfig.fgets(gateString, sizeof(gateString));
         
-        while (gateString[0] != sectDelim)
+        while (gateString[0] == sectDelim)
           {  
             index = 0; 
             if ( gateString[0] != '#')
@@ -239,15 +256,18 @@
                           toolSwitch[counter].voltSensor = atoi(token);
                           break;
                         case 3:
-                          toolSwitch[counter].voltBaseline = atol(token);
+                            //  v6.1.10.18.2021 -- changed atol to atof to match the data type in the structure
+                          toolSwitch[counter].voltBaseline = atof(token);
                           break; 
                         case 4:
-                          toolSwitch[counter].mainGate = atol(token);
+                          toolSwitch[counter].mainGate = atoi(token);
                           break; 
                         case 5:
+                            //  v6.1.10.18.2021 -- changed atol to atof to match the data type in the structure
                           toolSwitch[counter].VCC = atof(token);
                           break;
                         case 6:
+                            //  v6.1.10.18.2021 -- changed atol to atof to match the data type in the structure
                           toolSwitch[counter].voltDiff = atof(token);
                           break;
                       }   // end of the case statement          
@@ -257,7 +277,7 @@
             bytesRead = fConfig.fgets(gateString, sizeof(gateString));
             counter++;
          }   // end of electronic switch section
-  
+       //fConfig.close();
        return counter;
     }
 /*****************************************************************************
@@ -285,13 +305,11 @@ void startWifiFromConfig (char sectDelim, char delim[], int WifiStart)
   if (WifiStart)
   {
     bytesRead = fConfig.fgets(gateString, sizeof(gateString));
-    while (gateString[0] == sectDelim)                          // test to see if this is a comments section
-    {
+    while (gateString[0] != sectDelim)                          // test to see if this is a comments section
       bytesRead = fConfig.fgets(gateString, sizeof(gateString));
-    }
     token = strtok(gateString, delim);
+    token = strtok(NULL, delim);
     strcpy(cypherKey, token);             // This will be the filename of the wifi config file.
-    fConfig.close();
     memset (gateString, '\0', sizeof (gateString));
   }
   if (fEncrypt.open(cypherKey))
@@ -299,10 +317,10 @@ void startWifiFromConfig (char sectDelim, char delim[], int WifiStart)
     fEncrypt.read(gateString, 96);
     aes128_dec_multiple(cypherKey, gateString, 96);
     index = 0;
-    token = strtok(gateString, delim);
+    token = strtok(gateString, decrDelim);
     for (index = 0; index < 7; index++)      // Tokenize the baseline config parameters
     {
-      token = strtok(NULL, delim);
+      token = strtok(NULL, decrDelim);
       switch (index)
       {
         case 0:
@@ -363,20 +381,8 @@ void startWifiFromConfig (char sectDelim, char delim[], int WifiStart)
   } // end of If OPen Ecnrypt
   else
     Serial.println(F("couldn't open the encryption file"));
-/*  Blynk.virtualWrite(V33, ssid);
-  Blynk.virtualWrite(V34, pass);
-  Blynk.virtualWrite(V35, server);
-  Blynk.virtualWrite(V36, serverPort);
-  Blynk.virtualWrite(V37, ESP8266_BAUD);
-  Blynk.virtualWrite(V38, BlynkConnection);
-  Blynk.virtualWrite(V39, auth);
-  Blynk.syncVirtual(V33);
-  Blynk.syncVirtual(V34);
-  Blynk.syncVirtual(V35);
-  Blynk.syncVirtual(V36);
-  Blynk.syncVirtual(V37);
-  Blynk.syncVirtual(V38);*/
 
+  fConfig.close();
 }
 
 /*****************************************************************************
@@ -390,7 +396,8 @@ void exportEEPROMToFIle()
       SdBaseFile  fEEPROM;
       int x = 0;
 
-      fEEPROM.open("DustCollectorEEPROM.cfg", O_WRITE|O_CREAT);
+      sdCard.remove ("DustConnectorEEPROM.cfg");
+      fEEPROM.open("DustCollectorEEPROM.cfg", O_WRITE|O_CREAT|O_WRITE);
       fEEPROM.rewind();
       do
         {
@@ -412,14 +419,17 @@ void recoverEEPROMFromFile()
     SdBaseFile   fRdEEPROM;
     int x = 0;
 
+    BlynkEdgent.begin();
     fRdEEPROM.open ("DustCollectorEEPROM.cfg", O_READ);
     fRdEEPROM.rewind();
 
     do
     {
-      EEPROM[x] = fRdEEPROM.read();
-      Serial.print(F("EEPROM Address being read to file ==> "));
-      Serial.println(x);
+      EEPROM.put(x, fRdEEPROM.read());
+      Serial.print(F("EEPROM Address being read from file ==> "));
+      Serial.print(x);
+      Serial.print(" ==> ");
+      Serial.println(EEPROM[x]);
       x++;
     } while (fRdEEPROM.available() && x <= EEPROM.length());
     
@@ -427,12 +437,8 @@ void recoverEEPROMFromFile()
 
 void setup() 
   {
-    Serial.begin(250000);
+    Serial.begin(500000);
     delay (1000);
-
-    
-    char     fileName[32] = "DustGatesDefinition 53.cfg";
-
 
     pinMode(SD_WRITE, OUTPUT);       // define the SD card writing pin
             
@@ -444,25 +450,21 @@ void setup()
     if (fConfig.open(fileName))
       {
         Serial.println(F("in the open file section, starting to read"));
-        checker = fConfig.read();
-        while (checker != delimCheck)           // read all of the comments, stop once you find the first line for servo config
-          {
-            Serial.print(checker);
-            checker = fConfig.read();
-          }
+    
         readConfig (sectDelim, delim);                    // reads the first global config line from the config file.  
+        gates = readGateConfig (gateSectDelim, delim);        // read the gates section of the config file
         
-        gates = readGateConfig (sectDelim, delim);        // read the gates section of the config file
-        
-        outlets = readSensorConfig (sectDelim, delim);    // read the voltage sensor section of the config file
+        outlets = readSensorConfig (outletSectDelim, delim);    // read the voltage sensor section of the config file
       
-        startWifiFromConfig (sectDelim, delim, 1);           // read the wifi section of the config file, start the wifi, and connect to the blynk server
+        startWifiFromConfig (wifiSectDelim, delim, 1);           // read the wifi section of the config file, start the wifi, and connect to the blynk server
       }
     else
       { 
         Serial.print(F("could not open the file ==> "));
         Serial.println(fileName);
       }
+    fConfig.close();
+    
   }
 
 void loop() 
@@ -470,6 +472,8 @@ void loop()
     // put your main code here, to run repeatedly:
     char   serGet;
     int     nTemp = 0;
+    char    checker;
+
     Serial.println("");
     Serial.println (F("enter an <X> if you want to clear the EEPROM"));
     Serial.println(F("enter an <A> if you want to LLOOAADDD the settings to EEPROM"));
@@ -496,6 +500,8 @@ void loop()
         }
       case 'A':     // Add main configuration to EEPROM starting at address 0, write end of 
          {          //  write end of main config into EEPROM.Length - 10
+          fConfig.open(fileName, O_READ);
+          readConfig (sectDelim, delim);  
           eeAddress = SET_CONFIG;
           Serial.println("");
           Serial.println(F("going to write a bunch of data to the EEPROM, the filled byte indicates it hasn't been written"));
@@ -503,6 +509,7 @@ void loop()
           eeAddress += sizeof(dust);
           EEPROM.write(EEPROM.length()-10, eeAddress);
           nTemp = EEPROM[EEPROM.length() - 1];
+          fConfig.close();
           break;
         }
       case 'B':
