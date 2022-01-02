@@ -77,7 +77,7 @@
         char     port[16] = {'\0'};
         long     serverPort = 80;
         char     ESPSpeed[16] = {'\0'};
-        long     speed;
+        long     speed = 115200;
         char     BlynkConnection[16] = {'\0'};
         char     auth[40] = {'\0'};
       }  blynkWIFIConnect;

@@ -156,8 +156,11 @@
       int           bytesRead;
       char          serGet;
 
+    Serial.println("entered readgate section");
       //fConfig.open(fileName, O_READ);
       bytesRead = fConfig.fgets(gateString, sizeof(gateString));
+   Serial.print ("sectDelim ==> ");
+   Serial.println(sectDelim);
       while (gateString[0] != sectDelim)                          // test to see if this is a comments section
         {
           bytesRead = fConfig.fgets(gateString, sizeof(gateString));
@@ -169,6 +172,7 @@
         {                   
           if ( gateString[0] != '#')
             {
+    Serial.println(gateString);
               token = strtok(gateString, delim);
 
               for (index = 0; index < 6; index++)      
@@ -276,6 +280,7 @@
             memset (gateString, '\0', sizeof(gateString));
             bytesRead = fConfig.fgets(gateString, sizeof(gateString));
             counter++;
+    Serial.println(gateString);
          }   // end of electronic switch section
        //fConfig.close();
        return counter;
@@ -304,16 +309,21 @@ void startWifiFromConfig (char sectDelim, char delim[], int WifiStart)
   //  read the section for the Blynk wifi setup -- move this to a function as well, just need to make sure it works
   if (WifiStart)
   {
+   Serial.println("Stating the WIFI");
     bytesRead = fConfig.fgets(gateString, sizeof(gateString));
     while (gateString[0] != sectDelim)                          // test to see if this is a comments section
       bytesRead = fConfig.fgets(gateString, sizeof(gateString));
     token = strtok(gateString, delim);
     token = strtok(NULL, delim);
-    strcpy(cypherKey, token);             // This will be the filename of the wifi config file.
+    //strcpy(cypherKey, token);             // This will be the filename of the wifi config file.
+    strcpy(cypherKey, "DustWifi v53.cfg");
+
     memset (gateString, '\0', sizeof (gateString));
   }
+  Serial.println(cypherKey);
   if (fEncrypt.open(cypherKey))
   {
+    Serial.println("I was able to open the wifi file");
     fEncrypt.read(gateString, 96);
     aes128_dec_multiple(cypherKey, gateString, 96);
     index = 0;
@@ -419,7 +429,7 @@ void recoverEEPROMFromFile()
     SdBaseFile   fRdEEPROM;
     int x = 0;
 
-    BlynkEdgent.begin();
+   // BlynkEdgent.begin();
     fRdEEPROM.open ("DustCollectorEEPROM.cfg", O_READ);
     fRdEEPROM.rewind();
 
@@ -453,9 +463,8 @@ void setup()
     
         readConfig (sectDelim, delim);                    // reads the first global config line from the config file.  
         gates = readGateConfig (gateSectDelim, delim);        // read the gates section of the config file
-        
-        outlets = readSensorConfig (outletSectDelim, delim);    // read the voltage sensor section of the config file
-      
+  Serial.println("finished reading gates");      
+        outlets = readSensorConfig (outletSectDelim, delim);    // read the voltage sensor section of the config file    
         startWifiFromConfig (wifiSectDelim, delim, 1);           // read the wifi section of the config file, start the wifi, and connect to the blynk server
       }
     else
@@ -632,8 +641,12 @@ void loop()
       case 'G':       // write wifi config into EEPROM starting at address 1500
         {             // write the end address of structure into EEPROM.length() - 2
           eeAddress = WIFI_ADDRESS;
-          blynkWIFIConnect.speed = atol(blynkWIFIConnect.ESPSpeed);
-          blynkWIFIConnect.serverPort = atol(blynkWIFIConnect.port);
+          blynkWIFIConnect.speed = 115200;
+          blynkWIFIConnect.serverPort = 80;
+          strcpy(blynkWIFIConnect.BlynkConnection,"Blynk");
+          strcpy (blynkWIFIConnect.pass,"67NorseSk!");
+          strcpy (blynkWIFIConnect.ssid,"Everest 2.4G");
+          strcpy (blynkWIFIConnect.auth, "iLO3VC0Vq6XRdTAjKTb7Y3LT6ifV8E-r");
           EEPROM.put(WIFI_ADDRESS, blynkWIFIConnect);
           eeAddress += sizeof(blynkWIFIConnect);
           EEPROM.write (EEPROM.length() - 2, eeAddress);
@@ -642,8 +655,8 @@ void loop()
       case 'H':
         {
           EEPROM.get(WIFI_ADDRESS, blynkWIFIConnect);
-          blynkWIFIConnect.speed = atol(blynkWIFIConnect.ESPSpeed);
-          blynkWIFIConnect.serverPort = atol(blynkWIFIConnect.port);
+         // blynkWIFIConnect.speed = atol(blynkWIFIConnect.ESPSpeed);
+         // blynkWIFIConnect.serverPort = atol(blynkWIFIConnect.port);
           Serial.print (F("\n ssid    ==> "));
           Serial.println(blynkWIFIConnect.ssid);
           Serial.print (F("pass       ==> "));
