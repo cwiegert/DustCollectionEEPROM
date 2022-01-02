@@ -689,6 +689,11 @@ BLYNK_WRITE(V58)
     Blynk.virtualWrite(V54, toolSwitch[selectedOutlet].isON);
   }
 
+BLYNK_WRITE (V59)
+  {
+    if (param.asInt())
+      resetVoltageSwitches ();
+  }
 BLYNK_WRITE(V60)
   {
     dust.servoCount = param.asInt();
