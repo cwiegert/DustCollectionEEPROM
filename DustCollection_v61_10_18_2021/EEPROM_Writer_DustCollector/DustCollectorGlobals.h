@@ -2,7 +2,7 @@
  #define    SET_CONFIG 0
  #define    GATE_ADDRESS 100
  #define    OUTLET_ADDRESS  1400
- #define    WIFI_ADDRESS    2100  
+ #define    WIFI_ADDRESS    2100 
   
     boolean     collectorIsOn = false;  
     boolean     toolON = false;
@@ -14,17 +14,21 @@
     int         lowPos;                     // used as the closed max position in the config screen of the Blynk app
     boolean     bGo = false;
     char        cypherKey[17] = {'\0'};
-    boolean     gateAdded = false;
-  //  SdFat       sdCard;
-  //  SdBaseFile  fConfig;
-  //  char     delim[2] = {char(222), '\0'};         // delimeter for parsing the servo config
-  //  char     delimCheck = char(222);
- //   char     gateCheck = char(174);
- //   char     sectDelim = '^';
+    SdFat       sdCard;
+    SdBaseFile  fConfig;
+    char     delim[2] = {'~', '\0'};         // delimeter for parsing the servo config
+    char      decrDelim[2] = {char(222), '\0'};
+    char     delimCheck = char(222);
+    char     gateCheck = char(174);
+    char     sectDelim = '$';
+    char     gateSectDelim = '>';
+    char     outletSectDelim = '[';
+    char     wifiSectDelim = ']';
     char     checker;
     int      gates;
     int      outlets;
-    int      eeAddress;
+    char     fileName[32] = "DustGatesDefinition 53.cfg";
+
   
 
  /***********************************************
@@ -73,7 +77,7 @@
         char     port[16] = {'\0'};
         long     serverPort = 80;
         char     ESPSpeed[16] = {'\0'};
-        long     speed;
+        long     speed = 115200;
         char     BlynkConnection[16] = {'\0'};
         char     auth[40] = {'\0'};
       }  blynkWIFIConnect;
@@ -85,7 +89,7 @@
    * *******************************************************/
 
       struct systemConfig {
-        uint8_t     servoCount;   
+        int         servoCount;   
         int         NUMBER_OF_TOOLS = 0;
         int         NUMBER_OF_GATES = 0;
         int         DC_spindown;

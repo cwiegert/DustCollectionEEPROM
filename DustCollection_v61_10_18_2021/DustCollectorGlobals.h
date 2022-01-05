@@ -2,27 +2,31 @@
  #define    SET_CONFIG 0
  #define    GATE_ADDRESS 100
  #define    OUTLET_ADDRESS  1400
- #define    WIFI_ADDRESS    2100 
+ #define    WIFI_ADDRESS    2100  
   
     boolean     collectorIsOn = false;  
     boolean     toolON = false;
     byte        initiation = true;
     int         blynkSelectedGate;          // used to store the selected gate in the Blynk menu item
+    int         selectedOutlet;
     boolean     manualOveride = false;
     int         inspectionPin;
     int         highPos;                    // used as the open max position in the config screen of the Blynk app
     int         lowPos;                     // used as the closed max position in the config screen of the Blynk app
     boolean     bGo = false;
     char        cypherKey[17] = {'\0'};
-    SdFat       sdCard;
-    SdBaseFile  fConfig;
-    char     delim[2] = {char(222), '\0'};         // delimeter for parsing the servo config
-    char     delimCheck = char(222);
-    char     gateCheck = char(174);
-    char     sectDelim = '^';
+    boolean     gateAdded = false;
+    boolean     outletAdded = false;
+  //  SdFat       sdCard;
+  //  SdBaseFile  fConfig;
+  //  char     delim[2] = {char(222), '\0'};         // delimeter for parsing the servo config
+  //  char     delimCheck = char(222);
+ //   char     gateCheck = char(174);
+ //   char     sectDelim = '^';
     char     checker;
     int      gates;
     int      outlets;
+    int      eeAddress;
   
 
  /***********************************************
@@ -83,7 +87,7 @@
    * *******************************************************/
 
       struct systemConfig {
-        uint8_t     servoCount;   
+        int         servoCount;   
         int         NUMBER_OF_TOOLS = 0;
         int         NUMBER_OF_GATES = 0;
         int         DC_spindown;
