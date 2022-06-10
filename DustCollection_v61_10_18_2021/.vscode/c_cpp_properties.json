@@ -20,6 +20,8 @@
                 "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/variants/mega",
                 "/Users/cory.wiegert/Documents/Arduino/libraries/Adafruit_PWM_Servo_Driver_Library",
                 "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/libraries/Wire/src",
+                "/Users/cory.wiegert/Documents/Arduino/libraries/SdFat-master/src",
+                "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/libraries/SPI/src",
                 "/Users/cory.wiegert/Documents/Arduino/libraries/BlynkESP8266_Lib",
                 "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/libraries/EEPROM/src",
                 "/Users/cory.wiegert/Documents/Arduino/libraries/blynk-library-master/src",
