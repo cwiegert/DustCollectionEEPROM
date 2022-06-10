@@ -2,7 +2,7 @@
  #define    SET_CONFIG 0
  #define    GATE_ADDRESS 100
  #define    OUTLET_ADDRESS  1400
- #define    WIFI_ADDRESS    2100 
+ #define    WIFI_ADDRESS    2900
   
     boolean     collectorIsOn = false;  
     boolean     toolON = false;
@@ -27,6 +27,7 @@
     char     checker;
     int      gates;
     int      outlets;
+    int      selectedOutlet;
     char     fileName[32] = "DustGatesDefinition 53.cfg";
 
   

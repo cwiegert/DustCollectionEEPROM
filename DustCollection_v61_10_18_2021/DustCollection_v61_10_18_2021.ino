@@ -1,7 +1,6 @@
 #define BLYNK_TEMPLATE_ID "TMPL4y633j20"
 #define BLYNK_DEVICE_NAME "DustCollector EEPROM"
 #define BLYNK_AUTH_TOKEN "iLO3VC0Vq6XRdTAjKTb7Y3LT6ifV8E-r"
-
 // Replace the top 3 lines with the equivelant from your Blynk.Console device management  
 
 /*
@@ -70,6 +69,7 @@
 ****************************************************************************************************************************************/
 #define BLYNK_PRINT Serial
 #include <Adafruit_PWMServoDriver.h>
+#include "SdFat.h"
 #include "DustCollectorGlobals.h"
 #include <ESP8266_Lib.h>
 #include <EEPROM.h>
@@ -422,7 +422,7 @@ BLYNK_WRITE (V41)   //  button to open, decrypt and read file named in V30
         
         startWifiFromConfig ('^', delim, 0);         
       } // end of If Param == 1
-}
+  }
 
 BLYNK_WRITE (V42)   //  Create memory space for new gate to be added to the system.   Must save to EEPROM for gate to be active
 {                   //  modified v6.0
@@ -472,7 +472,8 @@ BLYNK_WRITE (V25)   //  Added in v 6.0 button to save values from the UI to the 
       Blynk.setProperty(V18, "labels", clearout);      // clear all existing values from gate menue
       for (int i = 0; i < dust.NUMBER_OF_GATES; i++)
         {
-          clearout.add (blastGate[i].gateName);
+          if (blastGate[i].gateID > -1)
+            clearout.add (blastGate[i].gateName);
         }
       Blynk.setProperty(V2, "labels", clearout);   // populate the menu with the name of each outlet
     // Blynk.virtualWrite (V2, 3);   // Highlights the sander as the selected gate
@@ -653,7 +654,10 @@ BLYNK_WRITE(V55)
 BLYNK_WRITE(V56)
   {
     if (param.asInt())
-      EEPROM.put(OUTLET_ADDRESS, toolSwitch);
+      {
+        eeAddress = OUTLET_ADDRESS;
+        EEPROM.put(OUTLET_ADDRESS, toolSwitch);
+      }
   }
 
 BLYNK_WRITE(V57)
@@ -765,7 +769,7 @@ void setup()
   //  char  auth[] = "-dv99jBjBpvacaTas2NNEEHs50c4aVzP";
     readConfigEEPROM();     //  modified v6.0
     //dust.DEBUG = 1;
-    if (dust.DEBUG)
+    if (dust.DEBUG ==1)
       {
         Serial.begin(500000);
         delay(100);
@@ -773,22 +777,7 @@ void setup()
     readGatesEEPROM ();     //  modified v6.0
     readOutletsEEPROM();    //  modified v6.0
     readWIFIConfig();       //  modified v6.0
-
-   /*if (dust.DEBUG == true)
-    {
-      for (int index = 0; index < dust.NUMBER_OF_GATES; index++)
-      {
-        writeDebug (blastGate[index].gateName, 1);
-        writeDebug ("   " + String (blastGate[index].gateID) + "      Gate pwmSlot ==> " + String(blastGate[index].pwmSlot) , 0);
-        writeDebug("    " + String (blastGate[index].openPos) + "    " + String (blastGate[index].closePos) + "     ", 1);
-        writeDebug ("    " + String (blastGate[index].openClose) + "     " + String(blastGate[index].gateConfig), 1);
-        writeDebug (String (toolSwitch[index].tool) + "    " + String (toolSwitch[index].switchID) + "   ", 1);
-        writeDebug ("    " + String (toolSwitch[index].voltSensor) + "    " + String(toolSwitch[index].voltBaseline) + "    ", 1);
-        writeDebug ("    " + String(toolSwitch[index].mainGate), 1);
-        writeDebug ("tools ==> " + String(index) + "   VCC from file ==> " + String (toolSwitch[index].VCC), 1);
-      }
-    }*/
-
+    
     pwm.begin();
     pwm.setPWMFreq(60);  // Default is 1000mS
     pinMode ( dust.dustCollectionRelayPin, OUTPUT);
@@ -796,6 +785,21 @@ void setup()
     turnOffDustCollection();
     startWifiFromConfig ('^^', '^', 1);  
     setBlynkControls();
+    if (dust.DEBUG == 1)
+      {
+        for (int index = 0; index < dust.NUMBER_OF_GATES; index++)
+        {
+          writeDebug (blastGate[index].gateName, 1);
+          writeDebug ("   " + String (blastGate[index].gateID) + "      Gate pwmSlot ==> " + String(blastGate[index].pwmSlot) , 0);
+          writeDebug("    " + String (blastGate[index].openPos) + "    " + String (blastGate[index].closePos) + "     ", 1);
+          writeDebug ("    " + String (blastGate[index].openClose) + "     " + String(blastGate[index].gateConfig), 1);
+          writeDebug (String (toolSwitch[index].tool) + "    " + String (toolSwitch[index].switchID) + "   ", 1);
+          writeDebug ("    " + String (toolSwitch[index].voltSensor) + "    " + String(toolSwitch[index].voltBaseline) + "    ", 1);
+          writeDebug ("    " + String(toolSwitch[index].mainGate), 1);
+          writeDebug ("tools ==> " + String(index) + "   VCC from file ==> " + String (toolSwitch[index].VCC), 1);
+        }
+      }
+
     closeAllGates (true); 
     //terminal.clear();
     //terminal.flush();
@@ -844,11 +848,11 @@ void loop()
           if (toolSwitch[i].isON == true)
           {
             i = dust.NUMBER_OF_TOOLS;
-         //if (dust.DEBUG == true)
-         //   {
-         //     writeDebug(String (toolSwitch[i].tool) + "  is still running, dumping out of checking loop", 1);
-         //     writeDebug("    The current active tool is ==>  " + String(activeTool), 1);
-         //   }
+            //if (dust.DEBUG == true)
+            //   {
+            //     writeDebug(String (toolSwitch[i].tool) + "  is still running, dumping out of checking loop", 1);
+            //     writeDebug("    The current active tool is ==>  " + String(activeTool), 1);
+            //   }
           }   // end of thet toolSwitch[i].isON
         }   // end of else
       }  // end of testing active tools.   This is the if statement above which test for active tool
@@ -888,19 +892,22 @@ void loop()
 void startWifiFromConfig (char sectDelim, char delim[], int WifiStart)
   {
     int      index;
-  /* if (dust.DEBUG)
+    dust.DEBUG = 1;
+  if (dust.DEBUG == 1)
     {
       writeDebug ("auth == > " + String (blynkWIFIConnect.auth), 1);
       writeDebug ("wifi coms speed ==> " + String(blynkWIFIConnect.speed) + "  | Connection ==> " + String(blynkWIFIConnect.BlynkConnection), 1);
       writeDebug ("ssid ==> " + String(blynkWIFIConnect.ssid) + "  |    pass ==> " + String(blynkWIFIConnect.pass) + "  | server ==> " + String (blynkWIFIConnect.server) + " | serverPort ==> " + String(blynkWIFIConnect.serverPort), 1);
-    }*/
+    }
     // Set ESP8266 baud rate
     //EspSerial.begin(blynkWIFIConnect.speed);
     EspSerial.begin(115200);
+    Serial.println(blynkWIFIConnect.auth);
     if (WifiStart)
-        Blynk.begin(blynkWIFIConnect.auth, wifi, "Everest", blynkWIFIConnect.pass);  
+       // Blynk.begin(blynkWIFIConnect.auth, wifi, blynkWIFIConnect.ssid, blynkWIFIConnect.pass);
+        Blynk.begin(BLYNK_AUTH_TOKEN, wifi, blynkWIFIConnect.ssid, blynkWIFIConnect.pass);  
         
-    ////  modified v6.0    using the UI now, instead of decrypting file in the Blynk UI
+    // modified v6.0    using the UI now, instead of decrypting file in the Blynk UI
 }
 
 /**************************************************
@@ -965,6 +972,8 @@ void setBlynkControls()
       terminal.print ("adding gate ==> ");
       terminal.println (blastGate[i].gateName);
       terminal.flush();
+  Serial.print("value of the gateID ==> ");
+  Serial.println(blastGate[i].gateID);
       if (blastGate[i].gateID > -1)
         clearout.add (blastGate[i].gateName);
     }
@@ -993,6 +1002,7 @@ void setBlynkControls()
   Blynk.syncAll();
   terminal.println ("finished setting the screen values");
   terminal.flush(); 
+
   
 }
 
@@ -1170,7 +1180,9 @@ void closeGate(uint8_t num, boolean initialize)
   if (dust.DEBUG == true)
   {
     Serial.print (F("closeGate " ));
-    Serial.println(blastGate[num].pwmSlot);
+    Serial.print(blastGate[num].gateID);
+    Serial.print (F("   Gate Name ==> "));
+    Serial.println (blastGate[num].gateName);
     // delay (50);
   }
 
@@ -1179,14 +1191,19 @@ void closeGate(uint8_t num, boolean initialize)
     if (manualOveride == true)
     {
       terminal.print("    closing gate ");
-      terminal.println(blastGate[num].pwmSlot);
+      terminal.print(blastGate[num].gateID);
+      terminal.print (" ,  Gate Name => ");
+      terminal.println(blastGate[num].gateName);
       terminal.flush();
     }
-    pwm.setPWM(blastGate[num].pwmSlot, 0, blastGate[num].closePos - 20);
-    delay(100);
-    //        delay(20);    the above line is a test for a longer delay and quicker response on the gates
-    for (int i = blastGate[num].closePos - 20; i <= blastGate[num].closePos; i += 1)
-      pwm.setPWM (blastGate[num].pwmSlot, 0 , i);
+    if (blastGate[num].gateID > -1)
+      {
+        pwm.setPWM(blastGate[num].pwmSlot, 0, blastGate[num].closePos - 20);
+        //delay(100);
+        delay(20);  //  the above line is a test for a longer delay and quicker response on the gates
+        for (int i = blastGate[num].closePos - 20; i <= blastGate[num].closePos; i += 1)
+          pwm.setPWM (blastGate[num].pwmSlot, 0 , i);
+      }
     blastGate[num].openClose = LOW;
   }
 
@@ -1202,21 +1219,27 @@ void closeGate(uint8_t num, boolean initialize)
 void openGate(int num)
 {
   int c;
-  if (blastGate[num].openClose == LOW)
-  {
-    if (manualOveride == true)
+  if (blastGate[num].gateID > -1)
     {
-      terminal.print("    opening gate ");
-      terminal.println(blastGate[num].pwmSlot);
-      terminal.flush();
+      if (blastGate[num].openClose == LOW && blastGate[num].gateID > -1 )
+        {
+          if (manualOveride == true)
+            {
+              terminal.print("    opening gate ");
+              terminal.print(blastGate[num].gateID);
+              terminal.print (" , Gate Name => ");
+              terminal.println(blastGate[num].gateName);
+     
+              terminal.flush();
+            }
+          pwm.setPWM(blastGate[num].pwmSlot, 0, (blastGate[num].openPos - 20));
+          //delay(25);
+          delay(20);  //the above line is a test for a longer delay and quicker response on the gates
+          for (c = (blastGate[num].openPos - 20); c <= blastGate[num].openPos; c += 1)
+            pwm.setPWM (blastGate[num].pwmSlot, 0, c);
+        }
+      blastGate[num].openClose = HIGH;
     }
-    pwm.setPWM(blastGate[num].pwmSlot, 0, (blastGate[num].openPos - 20));
-    delay(100);
-    //       delay(20);  the above line is a test for a longer delay and quicker response on the gates
-    for (c = (blastGate[num].openPos - 20); c <= blastGate[num].openPos; c += 1)
-      pwm.setPWM (blastGate[num].pwmSlot, 0, c);
-  }
-  blastGate[num].openClose = HIGH;
 }
 
 /*********************************************************
