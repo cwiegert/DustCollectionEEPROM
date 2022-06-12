@@ -65,6 +65,9 @@
                                                      To inactivate a gate or outlet - set set the tool Switch ID to -1 and the outlet will be ignored in the loop
                                                     There needs to be a switch ID configuration screen added to the Blynk app
              Cory D. Wiegert 10/18/2021    v. 6.1  Implemented Blynk 2.0, which may require an update to all the Blynk Controls and connectivity
+             Cory D. Wiegert  06/12/2022   v. 6.11  Added comments to describe all the controls on the new Blynk app.   
+                                                    several small bug fixes --> checked for -1 on the gate ID to ignore processing the gate
+                                                    changed the WIFI_ADDRESS in DustCollectorGlobals.h.   There wasn't enough space for the outlets
 
 ****************************************************************************************************************************************/
 #define BLYNK_PRINT Serial
@@ -93,7 +96,7 @@ BlynkTimer  timer;                //  Blynk cocunter to monitor events coming in
 WidgetTerminal terminal(V8);      //  terminal object in the Blynk app, main screen
 WidgetTerminal confTerm(V22);     //  terminal object in the Blynk app, configuration screen
 
-BLYNK_WRITE (V1)     //  turn on and off dust collector button
+BLYNK_WRITE (V1)     //  turn on and off dust collector button on the Runtime screen
 {
   if (manualOveride == true)
     if (param.asInt() == 1)           // button is pressed to on
@@ -105,7 +108,7 @@ BLYNK_WRITE (V1)     //  turn on and off dust collector button
         turnOffDustCollection();
 }
 
-BLYNK_WRITE (V2)     //  Gate drop down, selecting which gate is opened or closed
+BLYNK_WRITE (V2)     //  Gate drop down, selecting which gate is opened or closed on the Runtime screen
 {
   blynkSelectedGate = param.asInt() - 1;
   Blynk.virtualWrite(V3, blastGate[blynkSelectedGate].openPos);
@@ -115,7 +118,7 @@ BLYNK_WRITE (V2)     //  Gate drop down, selecting which gate is opened or close
 
 }
 
-BLYNK_WRITE (V5)     //  button for opening a gate.   Will set highlight back to middle button after processing click
+BLYNK_WRITE (V5)     //  button for opening a gate on the Runtime screen.   Will set highlight back to middle button after processing click
 {
   if (manualOveride == true)
     if (param.asInt() == 0)
@@ -140,7 +143,7 @@ BLYNK_WRITE (V5)     //  button for opening a gate.   Will set highlight back to
     }
 }
 
-BLYNK_WRITE (V6)     //  changes operation from automated monitoring | manual use of Blynk app
+BLYNK_WRITE (V6)     //  changes operation from automated monitoring | manual  on the Runtime screen use of Blynk app
 {
   if (param.asInt() == 1)
     manualOveride = true;
@@ -148,7 +151,7 @@ BLYNK_WRITE (V6)     //  changes operation from automated monitoring | manual us
     manualOveride = false;
 }
 
-BLYNK_WRITE (V7)     //  text on screen to close all the gates in the system.   Similar to a reinitialization
+BLYNK_WRITE (V7)     //  text on the Runtime screen to close all the gates in the system.   Similar to a reinitialization
 {
   if (manualOveride == true)
     if (param.asInt() == 1)
@@ -158,13 +161,13 @@ BLYNK_WRITE (V7)     //  text on screen to close all the gates in the system.   
     }
 }
 
-BLYNK_WRITE (V9)    //  text button on screen to clear the terminal widget
+BLYNK_WRITE (V9)    //  text button on the Runtime screen to clear the terminal widget
 {
   terminal.clear();
   terminal.flush();
 }
 
-BLYNK_WRITE (V12)    //  button that reads the voltage sensors of selected outlet
+BLYNK_WRITE (V12)    //  button on the Runtime screen that reads the voltage sensors of selected outlet
 {
   terminal.println(param.asInt());
   if (param.asInt() == 2)
@@ -180,12 +183,12 @@ BLYNK_WRITE (V12)    //  button that reads the voltage sensors of selected outle
   }
 }
 
-BLYNK_WRITE (V11)    //  menu drop down to choose which outlet to monitor
+BLYNK_WRITE (V11)    //  menu drop down on the Runtime screen to choose which outlet to monitor
 {
   inspectionPin = toolSwitch[param.asInt() - 1].voltSensor;
 }
 
-BLYNK_WRITE (V14)   //  button to set the debug flag.   This will allow manual opening and closing of gates, and monitoring outlet curent
+BLYNK_WRITE (V14)   //  button to set the debug flag on the Global Config Screen.   This will allow manual opening and closing of gates, and monitoring outlet curent
 {
   if (param.asInt() == 1)
     dust.DEBUG = true;
@@ -199,7 +202,7 @@ BLYNK_WRITE (V15)   //  v.6.0 -- no longer active
   //text button to reset the SD card.   Useful if making changes to the config file, doesn't require a restart of the Arduino script
 }
 
-BLYNK_WRITE (V16)    //  menu text, turns on the debug tracing.    Don't need to set the config file, can turn off debugging by clicking button again
+BLYNK_WRITE (V16)    //  OBOLETE????? menu text, turns on the debug tracing.    Don't need to set the config file, can turn off debugging by clicking button again
 {
   if (param.asInt() == 1)
   {
@@ -211,7 +214,7 @@ BLYNK_WRITE (V16)    //  menu text, turns on the debug tracing.    Don't need to
     dust.DEBUG = false;
 }
 
-BLYNK_WRITE (V18)    //  drop down for which gate to configure - lists the blas gates (on the config screen)
+BLYNK_WRITE (V18)    //  drop down on Gate Config screen for which gate to configure - lists the blas gates (on the config screen)
 {
   blynkSelectedGate = param.asInt() - 1;  
   Blynk.virtualWrite(V13, blastGate[blynkSelectedGate].gateID);
@@ -228,7 +231,7 @@ BLYNK_WRITE (V18)    //  drop down for which gate to configure - lists the blas 
   Blynk.syncVirtual(V44);
 }
 
-BLYNK_WRITE (V19)    //  open close toggle switch to tell the gate to open or close (on config screen)
+BLYNK_WRITE (V19)    //  open close toggle switch on Gate Config screen to tell the gate to open or close (on config screen)
 {
   if (manualOveride == true)
   {
@@ -267,7 +270,7 @@ BLYNK_WRITE (V19)    //  open close toggle switch to tell the gate to open or cl
   }
 }
 
-BLYNK_WRITE (V20)   //  number field on config screen used to set the open limit on the servero 
+BLYNK_WRITE (V20)   //  number field on Gate Config screen  used to set the open limit on the servero 
 {                   //  modified v6.0
   if (!gateAdded)
     {
@@ -278,7 +281,7 @@ BLYNK_WRITE (V20)   //  number field on config screen used to set the open limit
     blastGate[dust.NUMBER_OF_GATES].openPos = param.asInt();
 }
 
-BLYNK_WRITE (V21)   //  number field on the config screen used to set the close limit on the servo
+BLYNK_WRITE (V21)   //  number field on Gate Config screen used to set the close limit on the servo
 {                   //  modified v6.0
    if (!gateAdded)
     {
@@ -290,17 +293,17 @@ BLYNK_WRITE (V21)   //  number field on the config screen used to set the close 
 
 }
 
-BLYNK_WRITE (V22)    //  button used to clear the terminal on the config screen
+BLYNK_WRITE (V22)    //  button used on Gate Config screen to clear the terminal on the config screen
 {
   confTerm.clear();
   confTerm.flush();
 }
 
-BLYNK_WRITE (V30)    //  Text field on the encrypt screen used to input the wifi config file name
+BLYNK_WRITE (V30)    //  Text field on the WIFI Config Screen used to input the wifi config file name
 {
 
 }
-BLYNK_WRITE (V31)    //  toggle control on the encrypt screen used to tell whether to decrypt or encrypt the input file name
+BLYNK_WRITE (V31)    //  toggle control on the WIFI Config Screen used to tell whether to decrypt or encrypt the input file name
 {                   //  modified v6.0 --- commented out, the ENCRYPT screen will not work
   /*char   delim[2] = {char(222), '\0'};
   char   space = char(223);
@@ -414,7 +417,7 @@ BLYNK_WRITE (V39)    //  text input on encrypt screen to set the blynk app auth 
   //encryptTerm.flush();
 }
 
-BLYNK_WRITE (V41)   //  button to open, decrypt and read file named in V30 
+BLYNK_WRITE (V41)   //  OBSOLETE????? button to open, decrypt and read file named in V30 
   {                 //  modified v6.0
     if ( param.asInt() == 1)
       {
@@ -424,7 +427,7 @@ BLYNK_WRITE (V41)   //  button to open, decrypt and read file named in V30
       } // end of If Param == 1
   }
 
-BLYNK_WRITE (V42)   //  Create memory space for new gate to be added to the system.   Must save to EEPROM for gate to be active
+BLYNK_WRITE (V42)   //  button on Gate Config screen to Create memory space for new gate to be added to the system.   Must save to EEPROM for gate to be active
 {                   //  modified v6.0
   if (param.asInt() == 1)
     {
@@ -527,7 +530,7 @@ BLYNK_WRITE (V45)    //  control to configure the gate bitmap from the Blynk UI 
       strcpy(blastGate[blynkSelectedGate].gateConfig, param.asStr());
   }
 
-BLYNK_WRITE (V46)
+BLYNK_WRITE (V46)     //  Switch ID field on the Outlet Config Screen.  set by selecting the outlet from the dropdown
   {
     if (outletAdded)
       {
@@ -538,7 +541,7 @@ BLYNK_WRITE (V46)
       toolSwitch[selectedOutlet].switchID = param.asInt(); 
   }
 
-BLYNK_WRITE(V47)
+BLYNK_WRITE(V47)      //  Outlet Name field on the Outlet Config Screen.  set by selecting the outlet from the dropdown
   {
     if (outletAdded)
       {
@@ -549,7 +552,7 @@ BLYNK_WRITE(V47)
       strcpy(toolSwitch[selectedOutlet].tool, param.asStr()); 
   }
 
-BLYNK_WRITE(V48)
+BLYNK_WRITE(V48)      //  Analog Pin on arduino for the outliet on the Outlet Config Screen.  set by selecting the outlet from the dropdown
   {
     if (outletAdded)
       {
@@ -561,7 +564,7 @@ BLYNK_WRITE(V48)
 
   }
 
-BLYNK_WRITE(V49)
+BLYNK_WRITE(V49)      //  Baseline voltage against which the change will be measured.  on the Outlet Config Screen.  set by selecting the outlet from the dropdown
   {
     if (outletAdded)
       {
@@ -573,7 +576,7 @@ BLYNK_WRITE(V49)
 
   }
 
-BLYNK_WRITE(V50)
+BLYNK_WRITE(V50)      //  Main Gate field, this will map to the gate # and link the outlet to the gate.   Outlet Config Screen.  set by selecting the outlet from the dropdown
   {
     if (outletAdded)
       {
@@ -585,7 +588,7 @@ BLYNK_WRITE(V50)
 
   }
 
-BLYNK_WRITE(V51)
+BLYNK_WRITE(V51)      //  VCC Field on Outlet Config Screen.  set by selecting the outlet from the dropdown
   {
     if (outletAdded)
       {
@@ -597,8 +600,8 @@ BLYNK_WRITE(V51)
 
   }
 
-BLYNK_WRITE(V52)
-{
+BLYNK_WRITE(V52)      //  Amp Threshold field Outlet Config Screen.  set by selecting the outlet from the dropdown
+{                     //  sets the delta to determine if outlet has current flowing
   if (outletAdded)
     {
       if(outlets + 1 < 16)
@@ -609,8 +612,8 @@ BLYNK_WRITE(V52)
 
 }
 
-BLYNK_WRITE(V53)
-  {
+BLYNK_WRITE(V53)      //  Voltage Diff field on the  Outlet Config Screen.  set by selecting the outlet from the dropdown
+  {                   //   used in getVPP to set the trip threshold to determine if there is a  voltage change on the outlet
     if (outletAdded)
       {
         if(outlets + 1 < 16)
@@ -621,7 +624,7 @@ BLYNK_WRITE(V53)
 
   }
 
-BLYNK_WRITE(V54)
+BLYNK_WRITE(V54)      //  On/Off Button on the  Outlet Config Screen.  can manually activate the outlet, and show status
   {
     if (outletAdded)
       {
@@ -633,8 +636,8 @@ BLYNK_WRITE(V54)
 
   }
 
-BLYNK_WRITE(V55)
-  {
+BLYNK_WRITE(V55)      //  Save button on the Outlet Config Screen
+  {                   //  will save any changes from the screen to the local structure for the currently selected outlet
     if (param.asInt())
       {
         BLYNK_WRITE(V46);
@@ -651,8 +654,9 @@ BLYNK_WRITE(V55)
       }
   }
 
-BLYNK_WRITE(V56)
-  {
+BLYNK_WRITE(V56)      //  Saves button on the Outlet Config Screen
+  {                   //  Will write all outlet structures to EEPROM.   Used to save changes to permanent menory
+                      //  Modified in v6.0 to use EEPROM instead of writing back to SD card
     if (param.asInt())
       {
         eeAddress = OUTLET_ADDRESS;
@@ -660,8 +664,8 @@ BLYNK_WRITE(V56)
       }
   }
 
-BLYNK_WRITE(V57)
-  {
+BLYNK_WRITE(V57)      //  New button on the Outlet Config Screen
+  {                   //  used to add a brand new outlet definition to the system
     if (param.asInt())
       {
         outlets += 1;
@@ -679,7 +683,7 @@ BLYNK_WRITE(V57)
       }
   }
 
-BLYNK_WRITE(V58)
+BLYNK_WRITE(V58)      //  Outlet dropdown selector on the Outlet Config Screen
   {
     selectedOutlet = param.asInt();
     Blynk.virtualWrite(V46, toolSwitch[selectedOutlet].switchID);
@@ -693,57 +697,57 @@ BLYNK_WRITE(V58)
     Blynk.virtualWrite(V54, toolSwitch[selectedOutlet].isON);
   }
 
-BLYNK_WRITE (V59)
-  {
+BLYNK_WRITE (V59)     //  Reset voltage button on the Outlet Config Screen
+  {                   //  Used to re-read all baseline voltages in the system.   Should only be used if no machine running
     if (param.asInt())
       resetVoltageSwitches ();
   }
-BLYNK_WRITE(V60)
+BLYNK_WRITE(V60)      //  Servo Count field on the Global Config screen
   {
     dust.servoCount = param.asInt();
   }
 
-BLYNK_WRITE(V61)
+BLYNK_WRITE(V61)      //  Number of Tools field on the Global Config screen
   {
     dust.NUMBER_OF_TOOLS = param.asInt();
   }
 
-BLYNK_WRITE(V62)
+BLYNK_WRITE(V62)      //  Number of Gates on the Global Config screen
   {
     dust.NUMBER_OF_GATES = param.asInt();
   }
 
-BLYNK_WRITE(V63)
+BLYNK_WRITE(V63)      //  Spindown duration field on the Global Config screen
   {
     dust.DC_spindown = param.asInt();
   }
 
-BLYNK_WRITE(V64)
+BLYNK_WRITE(V64)      //  Dust collector Relay field on the Global Config screen
   {
     dust.dustCollectionRelayPin = param.asInt();
   }
 
-BLYNK_WRITE(V65)
+BLYNK_WRITE(V65)      //  Manual Switch Pin field on the Global Config screen
   {
     dust.manualSwitchPin = param.asInt();
   }
 
-BLYNK_WRITE(V66)
+BLYNK_WRITE(V66)      //  Sensitivity field on the Global Config screen
   {
     dust.mVperAmp = param.asFloat();
   }
-BLYNK_WRITE(V67)
+BLYNK_WRITE(V67)      //  Debounce field on the Global Config screen
   {
     dust.debounce = param.asLong();
   }
 
-BLYNK_WRITE (V70)
+BLYNK_WRITE (V70)     //  Save to EEEPROM Button on the Global Config screen
   {
     if (param.asInt())
       EEPROM.put (SET_CONFIG, dust);
   }
 
-BLYNK_WRITE (V71)
+BLYNK_WRITE (V71)     //  Save to LOCAL button on the Global Config Screen
   {
     if (param.asInt())
       {
@@ -801,10 +805,6 @@ void setup()
       }
 
     closeAllGates (true); 
-    //terminal.clear();
-    //terminal.flush();
-    //confTerm.clear();
-    //confTerm.flush();
     terminal.println ("Ready to run, finished setup");
     terminal.flush();
 }
@@ -1196,7 +1196,7 @@ void closeGate(uint8_t num, boolean initialize)
       terminal.println(blastGate[num].gateName);
       terminal.flush();
     }
-    if (blastGate[num].gateID > -1)
+    if (blastGate[num].gateID > -1)     // added for 06/12/2022 - ignore gate if gate not used
       {
         pwm.setPWM(blastGate[num].pwmSlot, 0, blastGate[num].closePos - 20);
         //delay(100);

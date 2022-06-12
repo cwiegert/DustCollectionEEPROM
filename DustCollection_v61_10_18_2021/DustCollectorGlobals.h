@@ -2,7 +2,7 @@
  #define    SET_CONFIG 0
  #define    GATE_ADDRESS 100
  #define    OUTLET_ADDRESS  1400
- #define    WIFI_ADDRESS    2900
+ #define    WIFI_ADDRESS    2900        // set new for 06/12/2022, giving more space to outlets
   
     boolean     collectorIsOn = false;  
     int         gateAdded = false;
