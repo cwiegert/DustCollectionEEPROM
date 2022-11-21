@@ -1,7 +1,7 @@
+
 // Fill-in information from your Blynk Template here
 #define BLYNK_TEMPLATE_ID "TMPL4y633j20"
 #define BLYNK_DEVICE_NAME "DustCollector EEPROM"
-#define BLYNK_AUTH_TOKEN "iLO3VC0Vq6XRdTAjKTb7Y3LT6ifV8E-r"
 
 #define BLYNK_FIRMWARE_VERSION        "0.1.0"
 
@@ -38,9 +38,37 @@
  **********************************************************************************/
 
 #include <EEPROM.h>
+#include <aes.h>
+#include <aes128_dec.h>
+#include <aes128_enc.h>
+#include <aes192_dec.h>
+#include <aes192_enc.h>
+#include <aes256_dec.h>
+#include <aes256_enc.h>
+#include <AESLib.h>
+#include <aes_dec.h>
+#include <aes_enc.h>
+#include <aes_invsbox.h>
+#include <aes_keyschedule.h>
+#include <aes_sbox.h>
+#include <aes_types.h>
+#include <bcal-basic.h>
+#include <bcal-cbc.h>
+#include <bcal-cmac.h>
+#include <bcal-ofb.h>
+#include <bcal_aes128.h>
+#include <bcal_aes192.h>
+#include <bcal_aes256.h>
+#include <blockcipher_descriptor.h>
+#include <gf256mul.h>
+#include <keysize_descriptor.h>
+#include <memxor.h>
+
+#include <Ethernet.h>
+
 #include "SdFat.h"
 #include "DustCollectorGlobals.h"
-#include <AESLib.h>
+//#include <AESLib.h>
 //#define USE_NODE_MCU_BOARD
 //#include "BlynkEdgent.h"
 
@@ -310,7 +338,7 @@ void startWifiFromConfig (char sectDelim, char delim[], int WifiStart)
   //  read the section for the Blynk wifi setup -- move this to a function as well, just need to make sure it works
   if (WifiStart)
   {
-   Serial.println("Starting the WIFI");
+   Serial.println("Stating the WIFI");
     bytesRead = fConfig.fgets(gateString, sizeof(gateString));
     while (gateString[0] != sectDelim)                          // test to see if this is a comments section
       bytesRead = fConfig.fgets(gateString, sizeof(gateString));
@@ -326,8 +354,7 @@ void startWifiFromConfig (char sectDelim, char delim[], int WifiStart)
   {
     Serial.println("I was able to open the wifi file");
     fEncrypt.read(gateString, 96);
-    //aes128_dec_multiple(cypherKey, gateString, 96);
-    //aes128_dec(cypherKey, gateString, 96);
+    aes128_dec_multiple(cypherKey, gateString, 96);
     index = 0;
     token = strtok(gateString, decrDelim);
     for (index = 0; index < 7; index++)      // Tokenize the baseline config parameters
@@ -434,7 +461,7 @@ void recoverEEPROMFromFile()
    // BlynkEdgent.begin();
     fRdEEPROM.open ("DustCollectorEEPROM.cfg", O_READ);
     fRdEEPROM.rewind();
-    x=0;
+
     do
     {
       EEPROM.put(x, fRdEEPROM.read());
@@ -512,7 +539,6 @@ void loop()
       case 'A':     // Add main configuration to EEPROM starting at address 0, write end of 
          {          //  write end of main config into EEPROM.Length - 10
           fConfig.open(fileName, O_READ);
-          fConfig.rewind();
           readConfig (sectDelim, delim);  
           eeAddress = SET_CONFIG;
           Serial.println("");
@@ -521,7 +547,7 @@ void loop()
           eeAddress += sizeof(dust);
           EEPROM.write(EEPROM.length()-10, eeAddress);
           nTemp = EEPROM[EEPROM.length() - 1];
-          //fConfig.close();
+          fConfig.close();
           break;
         }
       case 'B':
@@ -549,7 +575,7 @@ void loop()
             Serial.println (dust.DEBUG);          
             break;
         }
-
+      
       case 'C':       // Add Blast gates to the EEPROM memory, starting at address 100
         {             // write end of Gates EEPROM address into EEPROM.length() - 8
             eeAddress = GATE_ADDRESS;           
@@ -649,8 +675,7 @@ void loop()
           strcpy(blynkWIFIConnect.BlynkConnection,"Blynk");
           strcpy (blynkWIFIConnect.pass,"67NorseSk!");
           strcpy (blynkWIFIConnect.ssid,"Everest");
-          //strcpy (blynkWIFIConnect.ssid,"Everest 2.4G");
-          strcpy (blynkWIFIConnect.auth, "iLO3VC0Vq6XRdTAjKTb7Y3LT6ifV8E-r");
+          strcpy (blynkWIFIConnect.auth, "-dv99jBjBpvacaTas2NNEEHs50c4aVzP");
           EEPROM.put(WIFI_ADDRESS, blynkWIFIConnect);
           eeAddress += sizeof(blynkWIFIConnect);
           EEPROM.write (EEPROM.length() - 2, eeAddress);

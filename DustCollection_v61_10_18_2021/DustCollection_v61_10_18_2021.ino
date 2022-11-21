@@ -1080,12 +1080,6 @@ boolean checkForVoltageChange(int which)
     terminal.print ("  voltage ==> ");
     terminal.println (Voltage);
   }
-  /*********************************************
-       modify this piece to check for appropriate change off the last parameter
-       of the outlet sensor config line.   Right now, the bandsaw is not drawing enoug
-       current to keep the collector on -  need to debug this
-       toolSwitch[counter].ampThreshold
-    *************************************************/
   if (abs(Voltage - toolSwitch[which].voltBaseline) > toolSwitch[which].voltDiff)
   {
     if ( toolSwitch[which].isON == true)
