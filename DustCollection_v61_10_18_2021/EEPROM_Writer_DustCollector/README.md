@@ -12,6 +12,7 @@ Alternatively, open the .ino file, search for startWifiFromConfig() select wheth
 [Blynk Application QR Code](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/BlynkApplication.jpeg) is the baseline code for the app created specifically for this system.   If you use the app, it should conenct directly to the Virtual Pin configration defined in the event handlers of the main line code
 
 ***Initial Install of hardware and configuring EEPROM***
+**_____________________________________________________**
 
 When doing a clean install, there are several steps involved in getting the automation running correctly.   After all the piping, gates, wiring and electronics are installed, it's time to configure the servo's to open and close appropriately.   As documented in the config section of the [Readme (https://github.com/cwiegert/DustCollectionEEPROM/blob/main/README.md) the # of gates, servos, outlets, machines, and gatemaps have been set in the config file, and it needs to be loaded to EEPROM.    
 
