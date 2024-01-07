@@ -11,12 +11,50 @@ Alternatively, open the .ino file, search for startWifiFromConfig() select wheth
 
 [Blynk Application QR Code](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/DustCollection_v60_10_10_2021/BlynkApplication.jpeg) is the baseline code for the app created specifically for this system.   If you use the app, it should conenct directly to the Virtual Pin configration defined in the event handlers of the main line code
 
-***Initial Install of hardware and configuring EEPROM***
 **_____________________________________________________**
 
-When doing a clean install, there are several steps involved in getting the automation running correctly.   After all the piping, gates, wiring and electronics are installed, it's time to configure the servo's to open and close appropriately.   As documented in the config section of the [Readme (https://github.com/cwiegert/DustCollectionEEPROM/blob/main/README.md) the # of gates, servos, outlets, machines, and gatemaps have been set in the config file, and it needs to be loaded to EEPROM.    
+***Initial Install of hardware and configuring EEPROM***
 
-Load this .ino to the Arduino and run it.   The menu options are set in runtime order... run #1, #2, #3 in subsequent order, but I would suggest to not load any custom bits.    Once the menu items are complete, all of the set points for what free memory is available, and where to start righting in EEPROM are maintained int eh global variables held in DustCollectorGlobas.h, and the end of each section is held in EEPROM cells defined in the code using  EEPROM.lenght()-1, -10, -8.  
+**_____________________________________________________**
+
+When doing a clean install, there are several steps involved in getting the automation running correctly.   After all the piping, gates, wiring and electronics are installed, it's time to configure the servo's to open and close appropriately.   As documented in the config section of the [Readme.md](https://github.com/cwiegert/DustCollectionEEPROM/blob/main/README.md) the # of gates, servos, outlets, machines, and gatemaps have been set in the config file, and it needs to be loaded to EEPROM.    
+
+Load this .ino to the Arduino and run it.   The menu options are set in runtime order... run A,B,C in subsequent order, but I would suggest to not load any custom bits.   
+```
+Serial.println("");
+Serial.println (F("enter an <X> if you want to clear the EEPROM"));
+Serial.println(F("enter an <A> if you want to LLOOAADDD the settings to EEPROM"));
+Serial.println(F("enter an <B> if you want to RREEAADD the settings from EEPROM"));
+Serial.println(F("enter an <C> if you what the GATES section LLOOADDEEEDD"));
+Serial.println(F("enter an <D> if you want to RREEAADD the GATES config from EEPROM"));
+Serial.println(F("enter an <E> if you want to LLOOAADD the OUTLETS section to EEPROM"));
+Serial.println(F("enter an <F> if you want to RREEAADD the  OUTLET config from EERPOM"));
+Serial.println(F("enter an <G> if you want to LLLOOAADD the WIFI settings"));
+Serial.println(F("enter an <H> if you want to RREEEAADDD the WIFI settings"));
+Serial.println(F("enter <L> if you want to see what's in EEPROM"));
+Serial.println(F("enter an <S> to export the EEPROM for archiving"));
+Serial.println(F("enter an <R> to recover EEPROM from file"));
+```
+Once the menu items are complete, all of the set points for what free memory is available, and where to start righting in EEPROM are maintained int eh global variables held in DustCollectorGlobas.h, and the end of each section is held in EEPROM cells defined in the code using  EEPROM.length()-1, -10, -8.  For instance, when a new gate is added, the last position of the gate section needs to be update to account for the structure being added to EEPROM
+
+```
+BLYNK_WRITE (V24)   //  Added in v6.0  It's the button to write the new gate to EEPROM
+{                   //  modified v6.0
+  if (gateAdded)
+    {
+      eeAddress = SET_CONFIG;
+      EEPROM.put (eeAddress, dust);
+      eeAddress += sizeof(dust);
+      EEPROM.write(EEPROM.length()-10, eeAddress);
+    }
+  eeAddress = GATE_ADDRESS;           
+  for (int addy =0; addy < gates; addy ++)
+    {
+      EEPROM.put (eeAddress, blastGate[addy]);
+      eeAddress += sizeof(blastGate[addy]);
+    }
+  EEPROM[EEPROM.length() - 8] = eeAddress;
+```
 
 Once the EEPROM is loaded, the main Dust Collection .ino will need to be loaded to the Arduino.   Again, I used the Mega platform because of the amount of memory needed to handle all the events from the BLYNK app, and the arrays held for the gate bitmaps.   Typically, the main gate for each machine is the gate closest to the machine and linked to the Switch ID defined below.    the logic of the system is Main gate drives everything from the machine back to the dust collector with an "end of the line back" programming logic. 
 
